@@ -22,6 +22,8 @@ Extensions:
  - Iterate through training set and set the volume threshold that determines if instance should be labeled or shouldn't
 - [ ] Standard extensions as usual.
 
+The challenge ID is 911 and can be found in the 'dataset_conversion.py'.
+
 # Welcome to the new nnU-Net!
 
 Click [here](https://github.com/MIC-DKFZ/nnUNet/tree/nnunetv1) if you were looking for the old one instead.
