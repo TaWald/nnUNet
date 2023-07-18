@@ -1,3 +1,27 @@
+# Repo for the LNQ challenge
+
+Challenge info:
+
+The challenge deals with lymph node quantification (segmentation) but has a catch: Not all Lymph nodes are annotated within a patient.
+Out of e.g. 5 Lymphnodes (LN) only a single one is annotated. Additionally to that caveat they want you to only segment the lymph nodes that are 'pathological' i.e. larger than normal.
+They quantify this via a shitty radiomics measurement, therefore quite unreliable. 
+
+In their final test phase they have all lymph nodes annotated (assuming above the size threshold).
+
+Current gameplan:
+- [x] Download data
+- [x] Put in nnU-Net format
+- [x] Preprocess data
+- [ ] Train nnU-Net
+- [ ] Check submission format   
+
+Extensions:
+- [ ] Apply Lung segmentation network for more hard negative labels.
+- [ ] Create small region growing (e.g. Dilation with kernel size 2?) to have hard negatives where LNs end, everything else ignore label
+- [ ] Postprocessing by total instance volume.
+ - Iterate through training set and set the volume threshold that determines if instance should be labeled or shouldn't
+- [ ] Standard extensions as usual.
+
 # Welcome to the new nnU-Net!
 
 Click [here](https://github.com/MIC-DKFZ/nnUNet/tree/nnunetv1) if you were looking for the old one instead.
