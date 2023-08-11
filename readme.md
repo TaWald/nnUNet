@@ -16,13 +16,17 @@ Current gameplan:
 - [ ] Check submission format   
 
 Extensions:
-- [ ] Apply Lung segmentation network for more hard negative labels.
-- [ ] Create small region growing (e.g. Dilation with kernel size 2?) to have hard negatives where LNs end, everything else ignore label
+- [x] Apply Lung segmentation network for more hard negative labels.
+- [x] Create small region growing (e.g. Dilation with kernel size 2?) to have hard negatives where LNs end, everything else ignore label
 - [ ] Postprocessing by total instance volume.
  - Iterate through training set and set the volume threshold that determines if instance should be labeled or shouldn't
 - [ ] Standard extensions as usual.
 
 The challenge ID is 911 and can be found in the 'dataset_conversion.py'.
+
+Snippet to preprocess and plan:
+
+`bsub -n 64 -R "rusage[mem=500G]" -q highmem -L /bin/bash <Activate env here> python <YOUR_PATH>/lymph_nodes_quant/nnunetv2/experiment_planning/plan_and_preprocess_entrypoints.py -d XXX -gpu_memory_target 10.5 -c 3d_fullres`
 
 # Welcome to the new nnU-Net!
 
