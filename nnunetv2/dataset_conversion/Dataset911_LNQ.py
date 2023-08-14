@@ -421,13 +421,6 @@ def main():
         only_train_images, only_train_labels
     )
 
-    create_original_lnq_dataset(
-        only_train_images,
-        only_train_labels,
-        nnunet_raw_data_path,
-        "Dataset911_LNQ_original",
-    )
-
     convert(remaining_cases, temp_in_path)
     convert(remaining_labels, temp_lbl_path)
     total_segmentator_predict_dir(temp_in_path, temp_out_path)
@@ -454,19 +447,6 @@ def main():
     #     int(k) for k, v in non_zero_mean.items() if (v < 0.01 and k != 0)
     # }  # 0 is background, so we do not want that and do not want classes that overlap with lymphnodes.
 
-    # Create different groundtruths
-    default_dataset_json = create_original_lnq_dataset(
-        remaining_cases,
-        remaining_labels,
-        out_dir_default,
-        "Dataset911_LNQ_default",
-        dataset_json={
-        "channel_names": {"0": "CT"},
-        "labels": {0: 'background', 1: 'lymphnode'},
-        "numTraining": len(all_total_segmentator_files),
-        "file_ending": ".nrrd",
-    }
-    )
 
     no_aorta_dataset_json = create_groundtruth_given_totalsegmentator(
         temp_out_path, background_classes_no_aorta, temp_lbl_path, out_dir_aorta
@@ -498,11 +478,16 @@ def main():
     # Now we create the nnUNet compatible datasets
 
     create_original_lnq_dataset(
-        train_image_path=temp_in_path,
-        groundtruth_image_path=out_dir_medium_overlap,
-        output_path=nnunet_raw_data_path,
-        dataset_name="Dataset911_LNQ",
-        dataset_json=default_dataset_json,
+        only_train_images,
+        only_train_labels,
+        nnunet_raw_data_path,
+        "Dataset911_LNQ_original",
+        dataset_json={
+        "channel_names": {"0": "CT"},
+        "labels": {0: 'background', 1: 'lymphnode'},
+        "numTraining": len(only_train_images),
+        "file_ending": ".nrrd",
+    }
     )
 
     create_nnunet_dataset(
