@@ -402,7 +402,7 @@ def main():
     # out_dir_low_overlap = path_to_data / "background_low_overlap"
     out_dir_medium_overlap = path_to_data / "background_medium_overlap"
 
-    nnunet_raw_data_path = os.environ["raw_data"]
+    nnunet_raw_data_path = os.environ["nnUNet_raw"]
 
     train_dir = (
         path_to_data / "patched_train"
