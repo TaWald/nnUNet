@@ -67,7 +67,14 @@ def total_segmentator_predict_dir(case_dir, output_dir):
             continue
         else:
             print(f"Running total segmentator on {im_name}")
-            totalsegmentator(str(im), str(output_dir / out_name), nr_thr_saving=1, ml=True, fast=False, force_split=False)
+            totalsegmentator(
+                str(im),
+                str(output_dir / out_name),
+                nr_thr_saving=1,
+                ml=True,
+                fast=False,
+                force_split=False,
+            )
 
 
 def anatomical_score_dir(case_dir, output_dir):
@@ -206,12 +213,33 @@ def find_mutually_exclusive_classes_with_total_segmentator(
     return mean_res, non_zero_mean, all_results
 
 
+def create_original_lnq_dataset(
+    train_image_label_paths: list[Path],
+    groundtruth_image_paths: list[Path],
+    output_path: Path,
+    dataset_name: str,
+    dataset_json: dict,
+):
+    """Does not convert or anythin. Just moves files to the correct folder."""
+    train_path = output_path / dataset_name / "imagesTr"
+    label_path = output_path / dataset_name / "labelsTr"
+
+    for train_im, train_label in zip(train_image_label_paths, groundtruth_image_paths):
+        case_id = train_im.name.split("-")[-2]
+        
+        shutil.copy(train_im, train_path / case_id+"_0000.nrrd")
+        shutil.copy(train_label, label_path / case_id+".nrrd")
+
+    save_json(dataset_json, output_path / "dataset.json")
+    return
+
+
 def create_nnunet_dataset(
     train_image_path: Path,
     groundtruth_image_path: Path,
     output_path: Path,
     dataset_name: str,
-    dataset_json
+    dataset_json,
 ):
     """Moves the data from the chosen paths"""
     train_ids: dict[str, Path] = get_train_ids_and_im_path_from_dir(train_image_path)
@@ -233,15 +261,7 @@ def create_nnunet_dataset(
     return
 
 
-def multidim_isin(arr1: np.ndarray, values: Sequence[int]):
-    """Checks if all elements of arr1 are in arr2. arr1 can have more dimensions than arr2."""
-    org_shape = arr1.shape
-    flat_arr1 = arr1.ravel()
-    flat_bin_mask = np.isin(flat_arr1, values)
-    return flat_bin_mask.reshape(org_shape)
-
-
-def test_multidim_isin(arr1: np.ndarray, values: Sequence[int]):
+def simple_multidim_isin(arr1: np.ndarray, values: Sequence[int]):
     """Checks if all elements of arr1 are in arr2. arr1 can have more dimensions than arr2."""
     all_masks = []
     for val in values:
@@ -300,20 +320,18 @@ def create_groundtruth_given_totalsegmentator(
             lnq_data, fill_value=labels["ignore"]
         )  # 0 will be background, 1 is ignore label and 2 is foreground (lymph node)
 
-        # Flatten ts_data and final_groundtruth then check if the values of ts_data are in total_segmentator_background_class_ids.
-        #  If so, set the value to 0 there and else to the value in the flat final_groundtruth array.
-        #  Then reshape the final_groundtruth array to the shape of the original lnq_data array.
-        # mask = multidim_isin(ts_data, total_segmentator_background_class_ids)
-        total_segmentator_mask = test_multidim_isin(
+        total_segmentator_mask = simple_multidim_isin(
             ts_data, total_segmentator_background_class_ids
         )  # This is slow but running it once is enough, so who cares
 
-        # assert np.all(mask == mask_1), "Masks are not equal!"
-
         # Set all total segmentator predicted classes (that we want to set to background) to background
-        final_groundtruth = np.where(total_segmentator_mask, labels["background"], final_groundtruth)  
+        final_groundtruth = np.where(
+            total_segmentator_mask, labels["background"], final_groundtruth
+        )
         # To be safe of overlaps we set the lymph node (foreground) after to foreground
-        final_groundtruth = np.where(lnq_data != 0, labels["lymphnode"], final_groundtruth)
+        final_groundtruth = np.where(
+            lnq_data != 0, labels["lymphnode"], final_groundtruth
+        )
 
         final_groundtruth = final_groundtruth.reshape(lnq_data.shape)
 
@@ -321,12 +339,20 @@ def create_groundtruth_given_totalsegmentator(
         dilated_lnq_binary = morphology.binary_dilation(
             lnq_binary, iterations=2
         )  # Dilate with Square connectivity equal to one
-        lnq_boundary = dilated_lnq_binary - lnq_binary  # This is the boundary of the object
+        lnq_boundary = (
+            dilated_lnq_binary - lnq_binary
+        )  # This is the boundary of the object
 
         if make_outside_boundary_class:
-            final_groundtruth = np.where(lnq_boundary != 0, labels["lymphnode_outside_boundary"], final_groundtruth)
+            final_groundtruth = np.where(
+                lnq_boundary != 0,
+                labels["lymphnode_outside_boundary"],
+                final_groundtruth,
+            )
         else:
-            final_groundtruth = np.where(lnq_boundary != 0, labels["background"], final_groundtruth)
+            final_groundtruth = np.where(
+                lnq_boundary != 0, labels["background"], final_groundtruth
+            )
 
         output_im = sitk.GetImageFromArray(final_groundtruth.astype(np.uint32))
         output_im.CopyInformation(lnq_im)
@@ -369,15 +395,18 @@ def main():
     temp_lbl_path = path_to_data / "total_segmentator_LNQ" / "lbl"
     temp_out_path = path_to_data / "total_segmentator_LNQ" / "seg"
 
+    out_dir_default = path_to_data / "background_default"
     out_dir_aorta = path_to_data / "background_no_aorta"
     out_dir_aorta_boundary_class = path_to_data / "background_no_aorta_boundary_class"
     # out_dir_non_zero = path_to_data / "background_non_zero_overlap"
     # out_dir_low_overlap = path_to_data / "background_low_overlap"
     out_dir_medium_overlap = path_to_data / "background_medium_overlap"
 
-    nnunet_raw_data_path = os.environ['raw_data']
+    nnunet_raw_data_path = os.environ["raw_data"]
 
-    train_dir = path_to_data / "patched_train"  # Contains the new segmentation labels that are (hopefully) the same shape as original labels.
+    train_dir = (
+        path_to_data / "patched_train"
+    )  # Contains the new segmentation labels that are (hopefully) the same shape as original labels.
 
     train_ids = get_ids_from_dir(train_dir)
 
@@ -391,6 +420,14 @@ def main():
     remaining_cases, remaining_labels = filter_non_same_size_cases(
         only_train_images, only_train_labels
     )
+
+    create_original_lnq_dataset(
+        only_train_images,
+        only_train_labels,
+        nnunet_raw_data_path,
+        "Dataset911_LNQ_original",
+    )
+
     convert(remaining_cases, temp_in_path)
     convert(remaining_labels, temp_lbl_path)
     total_segmentator_predict_dir(temp_in_path, temp_out_path)
@@ -409,7 +446,7 @@ def main():
     background_classes_medium_overlap = {
         int(k) for k, v in non_zero_mean.items() if (v < 0.1 and k != 0)
     }  # 0 is background, so we do not want that and do not want classes that overlap with lymphnodes.
-    
+
     # background_classes_non_zero = {
     #     int(k) for k, v in mean_res.items() if (v == 0 and k != 0)
     # }  # 0 is background, so we do not want that and do not want classes that overlap with lymphnodes.
@@ -418,11 +455,30 @@ def main():
     # }  # 0 is background, so we do not want that and do not want classes that overlap with lymphnodes.
 
     # Create different groundtruths
+    default_dataset_json = create_original_lnq_dataset(
+        remaining_cases,
+        remaining_labels,
+        out_dir_default,
+        "Dataset911_LNQ_default",
+        dataset_json={
+        "channel_names": {"0": "CT"},
+        "labels": {0: 'background', 1: 'lymphnode'},
+        "numTraining": len(all_total_segmentator_files),
+        "file_ending": ".nrrd",
+    }
+    )
+
     no_aorta_dataset_json = create_groundtruth_given_totalsegmentator(
         temp_out_path, background_classes_no_aorta, temp_lbl_path, out_dir_aorta
     )
-    no_aorta_with_boundary_class_dataset_json = create_groundtruth_given_totalsegmentator(
-        temp_out_path, background_classes_no_aorta, temp_lbl_path, out_dir_aorta_boundary_class, make_outside_boundary_class=True
+    no_aorta_with_boundary_class_dataset_json = (
+        create_groundtruth_given_totalsegmentator(
+            temp_out_path,
+            background_classes_no_aorta,
+            temp_lbl_path,
+            out_dir_aorta_boundary_class,
+            make_outside_boundary_class=True,
+        )
     )
     medium_overlap_dataset_json = create_groundtruth_given_totalsegmentator(
         temp_out_path,
@@ -440,6 +496,15 @@ def main():
     #     out_dir_low_overlap,
     # )
     # Now we create the nnUNet compatible datasets
+
+    create_original_lnq_dataset(
+        train_image_path=temp_in_path,
+        groundtruth_image_path=out_dir_medium_overlap,
+        output_path=nnunet_raw_data_path,
+        dataset_name="Dataset911_LNQ",
+        dataset_json=default_dataset_json,
+    )
+
     create_nnunet_dataset(
         train_image_path=temp_in_path,
         groundtruth_image_path=out_dir_aorta,
