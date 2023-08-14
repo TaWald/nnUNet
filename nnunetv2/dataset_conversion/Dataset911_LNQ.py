@@ -70,7 +70,8 @@ def total_segmentator_predict_dir(case_dir, output_dir):
             totalsegmentator(
                 str(im),
                 str(output_dir / out_name),
-                nr_thr_saving=1,
+                nr_thr_resamp=3,
+                nr_thr_saving=6,
                 ml=True,
                 fast=False,
                 force_split=False,
