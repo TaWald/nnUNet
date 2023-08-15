@@ -228,10 +228,10 @@ def create_original_lnq_dataset(
     label_path = output_path / dataset_name / "labelsTr"
 
     for train_im, train_label in zip(train_image_label_paths, groundtruth_image_paths):
-        case_id = train_im.name.split("-")[-2]
+        case_id = int(train_im.name.split("-")[-2])
         
-        shutil.copy(train_im, train_path / ({case_id:04}+"_0000.nrrd"))
-        shutil.copy(train_label, label_path / ({case_id:04}+".nrrd"))
+        shutil.copy(train_im, train_path / (f"{case_id:04}_0000.nrrd"))
+        shutil.copy(train_label, label_path / (f"{case_id:04}.nrrd"))
 
     save_json(dataset_json, output_path / "dataset.json")
     return
