@@ -405,7 +405,7 @@ def main():
     # out_dir_low_overlap = path_to_data / "background_low_overlap"
     out_dir_medium_overlap = path_to_data / "background_medium_overlap"
 
-    nnunet_raw_data_path = os.environ["nnUNet_raw"]
+    nnunet_raw_data_path = Path(os.environ["nnUNet_raw"])
 
     train_dir = (
         path_to_data / "patched_train"
@@ -515,6 +515,7 @@ def main():
         dataset_name="Dataset913_aorta_not_background_with_boundary_class",
         dataset_json=no_aorta_with_boundary_class_dataset_json,
     )
+    
     print("Create Dataset914_medium_overlap_not_background.")
     create_nnunet_dataset(
         train_image_path=temp_in_path,
