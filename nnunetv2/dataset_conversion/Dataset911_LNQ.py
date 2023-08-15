@@ -236,7 +236,7 @@ def create_original_lnq_dataset(
         shutil.copy(train_im, train_path / (f"{case_id:04}_0000.nrrd"))
         shutil.copy(train_label, label_path / (f"{case_id:04}.nrrd"))
 
-    save_json(dataset_json, output_path / "dataset.json")
+    save_json(dataset_json, output_path / dataset_name /  "dataset.json")
     return
 
 
@@ -263,7 +263,7 @@ def create_nnunet_dataset(
 
         shutil.copy(train_im, train_path / f"{ids:04}_0000.nii.gz")
         shutil.copy(label_im, label_path / f"{ids:04}.nii.gz")
-    save_json(dataset_json, output_path / "dataset.json")
+    save_json(dataset_json, output_path / dataset_name /  "dataset.json")
     return
 
 
