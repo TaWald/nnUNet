@@ -227,6 +227,9 @@ def create_original_lnq_dataset(
     train_path = output_path / dataset_name / "imagesTr"
     label_path = output_path / dataset_name / "labelsTr"
 
+    train_path.mkdir(parents=True, exist_ok=True)
+    label_path.mkdir(parents=True, exist_ok=True)
+
     for train_im, train_label in zip(train_image_label_paths, groundtruth_image_paths):
         case_id = int(train_im.name.split("-")[-2])
         
