@@ -16,6 +16,7 @@ from typing import Union
 from nnunetv2.paths import nnUNet_preprocessed, nnUNet_raw, nnUNet_results
 from batchgenerators.utilities.file_and_folder_operations import *
 import numpy as np
+from json import dumps
 
 
 def find_candidate_datasets(dataset_id: int):
@@ -47,7 +48,7 @@ def convert_id_to_dataset_name(dataset_id: int):
     if len(unique_candidates) > 1:
         raise RuntimeError("More than one dataset name found for dataset id %d. Please correct that. (I looked in the "
                             + ("following folders:\n%s\n%s\n%s" % (dataset_id, nnUNet_raw, nnUNet_preprocessed, nnUNet_results))
-                            + f"Found: {dir_wise_candidates}.")
+                            + f"Found: {dumps(dir_wise_candidates)}.")
     if len(unique_candidates) == 0:
         raise RuntimeError(f"Could not find a dataset with the ID {dataset_id}. Make sure the requested dataset ID "
                            f"exists and that nnU-Net knows where raw and preprocessed data are located "
