@@ -162,6 +162,8 @@ def find_mutually_exclusive_classes_with_total_segmentator(
             assert (
                 ts.split("-")[2] == gt.split("-")[2]
             ), "Total segmentator and groundtruth files do not match!"
+            + f"N_Totalsegmentator: {len(all_total_segmentator_files)}, N_GT: {len(all_groundtruth_files)}"
+            + f"Case ids: TS: {ts}, GT: {gt}"
 
         all_results = {}
         for i in range(105):
