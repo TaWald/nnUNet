@@ -450,10 +450,12 @@ def main():
     #     int(k) for k, v in non_zero_mean.items() if (v < 0.01 and k != 0)
     # }  # 0 is background, so we do not want that and do not want classes that overlap with lymphnodes.
 
-
+    print("No Aorta: Create groundtruth given total segmentator")
     no_aorta_dataset_json = create_groundtruth_given_totalsegmentator(
         temp_out_path, background_classes_no_aorta, temp_lbl_path, out_dir_aorta
     )
+
+    print("No Aorta with boundary class dataset: Create groundtruth given total segmentator")
     no_aorta_with_boundary_class_dataset_json = (
         create_groundtruth_given_totalsegmentator(
             temp_out_path,
@@ -463,6 +465,8 @@ def main():
             make_outside_boundary_class=True,
         )
     )
+
+    print("Medium overlap classes: Create groundtruth given total segmentator")
     medium_overlap_dataset_json = create_groundtruth_given_totalsegmentator(
         temp_out_path,
         background_classes_medium_overlap,
@@ -480,6 +484,7 @@ def main():
     # )
     # Now we create the nnUNet compatible datasets
 
+    print("Create Dataset911_LNQ_original")
     create_original_lnq_dataset(
         only_train_images,
         only_train_labels,
@@ -493,25 +498,29 @@ def main():
     }
     )
 
+    print("Create Dataset912_aorta_not_background")
     create_nnunet_dataset(
         train_image_path=temp_in_path,
         groundtruth_image_path=out_dir_aorta,
         output_path=nnunet_raw_data_path,
-        dataset_name="Dataset912_aorta-not-background",
+        dataset_name="Dataset912_aorta_not_background",
         dataset_json=no_aorta_dataset_json,
     )
+
+    print("Create Dataset913_aorta_not_background_with_boundary_class.")
     create_nnunet_dataset(
         train_image_path=temp_in_path,
         groundtruth_image_path=out_dir_aorta_boundary_class,
         output_path=nnunet_raw_data_path,
-        dataset_name="Dataset913_aorta-not-background-with-boundary-class",
+        dataset_name="Dataset913_aorta_not_background_with_boundary_class",
         dataset_json=no_aorta_with_boundary_class_dataset_json,
     )
+    print("Create Dataset914_medium_overlap_not_background.")
     create_nnunet_dataset(
         train_image_path=temp_in_path,
         groundtruth_image_path=out_dir_medium_overlap,
         output_path=nnunet_raw_data_path,
-        dataset_name="Dataset914_medium-overlap-not-background",
+        dataset_name="Dataset914_medium_overlap_not_background",
         dataset_json=medium_overlap_dataset_json,
     )
 
