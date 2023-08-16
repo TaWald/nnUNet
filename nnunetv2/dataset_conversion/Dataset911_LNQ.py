@@ -495,7 +495,7 @@ def main():
         "Dataset911_LNQ_original",
         dataset_json={
         "channel_names": {"0": "CT"},
-        "labels": {0: 'background', 1: 'lymphnode'},
+        "labels": {'background':0 , 'lymphnode': 1},
         "numTraining": len(only_train_images),
         "file_ending": ".nrrd",
     }
