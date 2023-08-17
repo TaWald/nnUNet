@@ -267,9 +267,8 @@ def simple_multidim_isin(arr1: np.ndarray, values: Sequence[int]):
     return mask
 
 
-def create_outside_lung_axial_mask(total_segmentator_groundtruth: np.ndarray):
-    """ Creates the convex hull between lung lobes for all z-slices where both lung lobes are present.
-        The 'certain' background is set to 1 and the unceratain can be assumed ."""
+def create_convex_lung_mask(total_segmentator_groundtruth: np.ndarray):
+    """ Creates the convex hull of the lung, setting everthing inside to 1."""
 
     left_lung = [13, 14]
     right_lung = [15, 16, 17]
@@ -278,9 +277,10 @@ def create_outside_lung_axial_mask(total_segmentator_groundtruth: np.ndarray):
     right_lung_mask = simple_multidim_isin(total_segmentator_groundtruth, right_lung)
 
     joint_lung_mask = np.logical_or(left_lung_mask, right_lung_mask)
-
+    convex_lung_mask, _ = flood_fill_hull(joint_lung_mask)
     # We want the minimum and the maximum along each dimension.
     # Assume that z axis is 0
+    """
     left_non_zero_z_ids = np.argwhere(np.sum(left_lung_mask, axis=[1,2]) != 0)  # Only leaves z axis
     right_non_zero_z_ids = np.argwhere(np.sum(right_lung_mask, axis=[1,2]) != 0)  # Only leaves z axis
 
@@ -292,8 +292,8 @@ def create_outside_lung_axial_mask(total_segmentator_groundtruth: np.ndarray):
         slice = joint_lung_mask[z]
         convex_hull = sk_morphology.convex_hull_image(slice)
         non_convex_lung_mask[z] = np.logical_not(convex_hull)  # 1 Where Convex hull is not, 0 where it is. (0 is ignore label later)
-    
-    return non_convex_lung_mask
+    """
+    return convex_lung_mask
 
 def flood_fill_hull(image):    
     points = np.transpose(np.where(image))
