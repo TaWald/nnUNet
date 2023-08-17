@@ -29,8 +29,12 @@ def main():
     niftis_of_interest = [i for i in input_path.iterdir() if i.name.endswith(".nii.gz")]
     print(f"Found {len(niftis_of_interest)} niftis of interest.")
     for input_file in niftis_of_interest:
-        output_file = output_path / (input_file.name[:-7] + ".nrrd")
+        output_name = input_file.name[:-9] + "seg.nrrd"  # Removes the 'ct.nii.gz'
+        output_file = output_path / output_name
         sitk_convert(input_file, output_file)
+
+if __name__ == "__main__":
+    main()
 
 
     
