@@ -497,7 +497,7 @@ def measure_convex_hull_and_groundtruth(
     gt_im = sitk.GetArrayFromImage(sitk.ReadImage(str(gt_path)))
     convex_im = sitk.GetArrayFromImage(sitk.ReadImage(str(im_path)))
 
-    case_name = gt_path.name
+    case_name = Path(gt_path).name
 
     foreground_ratio_in_case = np.sum(np.logical_and(gt_im == 1, convex_im == 1)) / np.sum(gt_im == 1)
     if foreground_ratio_in_case != 1:
@@ -514,7 +514,7 @@ def mp_measure_volume_contained_in_convex_hull(
     groundtruth_dict = {k.name.split("-")[-2]: k for k in groundtruth_dir.iterdir()}
     convex_hull_dict = {k.name.split("-")[-2]: k for k in convex_hull_dir.iterdir()}
 
-    gt_im_paths = [(groundtruth_dict[k], convex_hull_dict[k]) for k in groundtruth_dict]
+    gt_im_paths = [(str(groundtruth_dict[k]), str(convex_hull_dict[k])) for k in groundtruth_dict]
 
     from multiprocessing import Pool
     with Pool(32) as p:
