@@ -2,8 +2,6 @@ from argparse import ArgumentParser
 from pathlib import Path
 import SimpleITK as sitk
 import shutil
-shutil.make_archive(output_filename, 'zip', dir_name)
-
 
 original_data_dir = Path("/dkfz/cluster/gpu/data/OE0441/t006d/nnunetv2/results/lnq_test_data/val_nrrd")
 
