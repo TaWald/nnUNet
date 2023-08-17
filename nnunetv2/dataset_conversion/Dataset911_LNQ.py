@@ -444,7 +444,7 @@ def create_convex_hulls(filepath: Path, ribcage_out: Path, lung_out: Path):
     return
 
 def mp_create_convex_hulls_given_totalsegmentator(
-    totalseg_dir: Path, ribcage_out: Path, lung_out: Path
+    totalseg_dir: Path, ribcage_out: Path, lung_out: Path, joint_out: Path
 ):
     """
     Create the convex hulls
@@ -452,18 +452,19 @@ def mp_create_convex_hulls_given_totalsegmentator(
     all_content = [f for f in totalseg_dir.iterdir()]
     ribcage_out.mkdir(exist_ok=True, parents=True)
     lung_out.mkdir(exist_ok=True, parents=True)
+    joint_out.mkdir(exist_ok=True, parents=True)
 
     from multiprocessing import Pool
     from functools import partial
 
-    partial_create_convex_hull = partial(create_convex_hulls, ribcage_out=ribcage_out, lung_out=lung_out)
+    partial_create_convex_hull = partial(create_convex_hulls, ribcage_out=ribcage_out, lung_out=lung_out, joint_out=joint_out)
 
     with Pool(32) as p:
         p.map(partial_create_convex_hull, all_content)
     return
 
 def create_convex_hulls_given_totalsegmentator(
-    totalseg_dir: Path, ribcage_out: Path, lung_out: Path
+    totalseg_dir: Path, ribcage_out: Path, lung_out: Path, joint_out: Path
 ):
     """
     Create the convex hulls
@@ -487,6 +488,15 @@ def create_convex_hulls_given_totalsegmentator(
             lung_convex_im = sitk.GetImageFromArray(lung_convex_hull.astype(np.uint32))
             lung_convex_im.CopyInformation(im)
             sitk.WriteImage(lung_convex_im, str(lung_out / filename))
+        if not (joint_out / filename).exists():
+            im = sitk.ReadImage(c)
+            data = sitk.GetArrayFromImage(im)
+            rib_convex_hull, _ = create_ribcage_convex_hull(data)
+            lung_convex_hull = create_convex_hull_lung_mask(data)
+            joint_convex_hull = np.logical_or(rib_convex_hull, lung_convex_hull)
+            joint_convex_im = sitk.GetImageFromArray(joint_convex_hull.astype(np.uint32))
+            joint_convex_im.CopyInformation(im)
+            sitk.WriteImage(joint_convex_im, str(joint_out / filename))
     return
 
 
@@ -587,6 +597,7 @@ def main():
     temp_out_path = path_to_data / "total_segmentator_LNQ" / "seg"
     ribcage_out_path = path_to_data / "total_segmentator_LNQ" / "ribcage_convex_hull"
     lung_out_path = path_to_data / "total_segmentator_LNQ" / "lung_convex_hull"
+    joint_out_path = path_to_data / "total_segmentator_LNQ" / "joint_convex_hull"
     val_path = path_to_data / "val"
     val_nifti_path = path_to_data / "val_nifti"
 
@@ -623,7 +634,7 @@ def main():
     total_segmentator_predict_dir(temp_in_path, temp_out_path)
     print("Creating convex hulls given Totalsegmentator")
     mp_create_convex_hulls_given_totalsegmentator(
-        temp_out_path, ribcage_out_path, lung_out_path
+        temp_out_path, ribcage_out_path, lung_out_path, joint_out_path
     )
 
     if not convex_hull_info.exists():
@@ -640,6 +651,12 @@ def main():
             lung_non_zero_pct,
             lung_non_zero_cases
         ) = mp_measure_volume_contained_in_convex_hull(temp_lbl_path, lung_out_path)
+        (
+            joint_n_cases,
+            joint_avg_casewise_pct,
+            joint_non_zero_pct,
+            joint_non_zero_cases
+        ) = mp_measure_volume_contained_in_convex_hull(temp_lbl_path, joint_out_path)
         save_json(
             {
                 "ribcage": {
@@ -655,6 +672,13 @@ def main():
                     "non_zero_pct": lung_non_zero_pct,
                     "avg_non_zero_pct": float(np.mean(lung_non_zero_pct)),
                     "lung_non_zero_cases": lung_non_zero_cases
+                },
+                "joint": {
+                    "n_cases": joint_n_cases,
+                    "avg_casewise_pct": joint_avg_casewise_pct,
+                    "non_zero_pct": joint_non_zero_pct,
+                    "avg_non_zero_pct": float(np.mean(joint_non_zero_pct)),
+                    "joint_non_zero_cases": joint_non_zero_cases
                 },
             },
             str(convex_hull_info),
