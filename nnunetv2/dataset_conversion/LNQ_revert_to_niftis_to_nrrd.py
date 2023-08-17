@@ -25,8 +25,8 @@ def main():
     input_path = Path(args.i)
     output_path = Path(args.o)
 
-    for input_file in input_path.glob("*.nrrd"):
-        output_file = output_path / (input_file.stem + ".nii.gz")
+    for input_file in input_path.glob("*.nii.gz"):
+        output_file = output_path / (input_file.name[:-7] + ".nrrd")
         sitk_convert(input_file, output_file)
 
 
