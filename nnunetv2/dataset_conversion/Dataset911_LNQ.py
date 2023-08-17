@@ -429,7 +429,7 @@ def create_convex_hulls_given_totalsegmentator(totalseg_dir: Path, ribcage_out: 
     all_content = [f for f in totalseg_dir.iterdir()]
     ribcage_out.mkdir(exist_ok=True, parents=True)
     lung_out.mkdir(exist_ok=True, parents=True)
-    for c in all_content:
+    for c in tqdm(all_content):
         filename = c.name
         if not (ribcage_out / filename).exists():
             im = sitk.ReadImage(c)
@@ -509,6 +509,7 @@ def main():
     convert(remaining_cases, temp_in_path)
     convert(remaining_labels, temp_lbl_path)
     total_segmentator_predict_dir(temp_in_path, temp_out_path)
+    print("Creating convex hulls given Totalsegmentator")
     create_convex_hulls_given_totalsegmentator(temp_out_path, ribcage_out_path, lung_out_path)
     (
         mean_res,
