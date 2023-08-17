@@ -434,7 +434,7 @@ def create_convex_hulls_given_totalsegmentator(totalseg_dir: Path, ribcage_out: 
         if not (ribcage_out / filename).exists():
             im = sitk.ReadImage(c)
             data = sitk.GetArrayFromImage(im)
-            rib_convex_hull = create_ribcage_convex_hull(data)
+            rib_convex_hull, _ = create_ribcage_convex_hull(data)
             rib_convex_im = sitk.GetImageFromArray(rib_convex_hull.astype(np.uint32)).CopyInformation(im)
             sitk.WriteImage(rib_convex_im, str(ribcage_out / filename))
         if not (lung_out / filename).exists():
