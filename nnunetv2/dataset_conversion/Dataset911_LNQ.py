@@ -442,7 +442,7 @@ def create_convex_hulls(filepath: Path, ribcage_out: Path, lung_out: Path, joint
         lung_convex_im.CopyInformation(im)
         sitk.WriteImage(lung_convex_im, str(lung_out / filename))
     if not (joint_out / filename).exists():
-            im = sitk.ReadImage(c)
+            im = sitk.ReadImage(filepath)
             data = sitk.GetArrayFromImage(im)
             rib_convex_hull, _ = create_ribcage_convex_hull(data)
             lung_convex_hull = create_convex_hull_lung_mask(data)
