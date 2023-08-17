@@ -497,21 +497,22 @@ def measure_convex_hull_and_groundtruth(
     gt_im = sitk.GetArrayFromImage(sitk.ReadImage(str(gt_im_path[0])))
     convex_im = sitk.GetArrayFromImage(sitk.ReadImage(str(gt_im_path[1])))
 
+    case_name = gt_im_path[0].name
+
     foreground_ratio_in_case = np.sum(np.logical_and(gt_im == 1, convex_im == 1)) / np.sum(gt_im == 1)
     if foreground_ratio_in_case != 1:
         outside_hull = 1
     else:
         outside_hull = 0
 
-    return outside_hull, foreground_ratio_in_case
+    return outside_hull, foreground_ratio_in_case, case_name
 
 def mp_measure_volume_contained_in_convex_hull(
     groundtruth_dir: Path, convex_hull_dir: Path
-):
+) -> tuple[int, float, list[float]]:
     """Loads same images, and measure how much of label 1 (foreground) of groundtruth is contained in lung/ribcage convex hull (label 1) ."""
     groundtruth_dict = {k.name.split("-")[-2]: k for k in groundtruth_dir.iterdir()}
     convex_hull_dict = {k.name.split("-")[-2]: k for k in convex_hull_dir.iterdir()}
-
 
     gt_im_paths = [(groundtruth_dict[k], convex_hull_dict[k]) for k in groundtruth_dict]
 
@@ -522,14 +523,16 @@ def mp_measure_volume_contained_in_convex_hull(
     n_cases = 0
     all_foreground_ratios = []
     non_zero_pct = []
+    non_zero_cases = []
     for r in res:
-        outside_hull, foreground_ratio_in_case = r
+        outside_hull, foreground_ratio_in_case, case_name = r
         if outside_hull != 0:
             n_cases += 1
-            non_zero_pct.append(foreground_ratio_in_case)
+            non_zero_pct.append(float(foreground_ratio_in_case))
+            non_zero_cases.append(case_name)
         all_foreground_ratios.append(foreground_ratio_in_case)
 
-    return n_cases, float(np.mean(all_foreground_ratios)), float(np.mean(non_zero_pct))
+    return n_cases, float(np.mean(all_foreground_ratios)), non_zero_pct, non_zero_cases
 
 def measure_volume_contained_in_convex_hull(
     groundtruth_dir: Path, convex_hull_dir: Path
@@ -552,7 +555,7 @@ def measure_volume_contained_in_convex_hull(
             n_cases += 1
             non_zero_pct.append(foreground_ratio_in_case)
         all_foreground_ratios.append(foreground_ratio_in_case)
-    return n_cases, float(np.mean(all_foreground_ratios)), float(np.mean(non_zero_pct))
+    return n_cases, all_foreground_ratios, non_zero_pct
 
 
 def main():
@@ -629,11 +632,13 @@ def main():
             ribcage_n_cases,
             ribcage_avg_casewise_pct,
             ribcage_non_zero_pct,
+            ribcage_non_zero_cases
         ) = mp_measure_volume_contained_in_convex_hull(temp_lbl_path, ribcage_out_path)
         (
             lung_n_cases,
             lung_avg_casewise_pct,
             lung_non_zero_pct,
+            lung_non_zero_cases
         ) = mp_measure_volume_contained_in_convex_hull(temp_lbl_path, lung_out_path)
         save_json(
             {
@@ -641,11 +646,15 @@ def main():
                     "n_cases": ribcage_n_cases,
                     "avg_casewise_pct": ribcage_avg_casewise_pct,
                     "non_zero_pct": ribcage_non_zero_pct,
+                    "avg_non_zero_pct": float(np.mean(ribcage_non_zero_pct)),
+                    "ribcage_non_zero_cases": ribcage_non_zero_cases
                 },
                 "lung": {
                     "n_cases": lung_n_cases,
                     "avg_casewise_pct": lung_avg_casewise_pct,
                     "non_zero_pct": lung_non_zero_pct,
+                    "avg_non_zero_pct": float(np.mean(lung_non_zero_pct)),
+                    "lung_non_zero_cases": lung_non_zero_cases
                 },
             },
             str(convex_hull_info),
