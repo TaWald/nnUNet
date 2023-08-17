@@ -267,7 +267,7 @@ def simple_multidim_isin(arr1: np.ndarray, values: Sequence[int]):
     return mask
 
 
-def create_convex_lung_mask(total_segmentator_groundtruth: np.ndarray):
+def create_convex_hull_lung_mask(total_segmentator_groundtruth: np.ndarray):
     """ Creates the convex hull of the lung, setting everthing inside to 1."""
 
     left_lung = [13, 14]
@@ -441,7 +441,7 @@ def create_convex_hulls_given_totalsegmentator(totalseg_dir: Path, ribcage_out: 
         if not (lung_out / filename).exists():
             im = sitk.ReadImage(c)
             data = sitk.GetArrayFromImage(im)
-            lung_convex_hull = create_outside_lung_axial_mask(data)
+            lung_convex_hull = create_convex_hull_lung_mask(data)
             lung_convex_im = sitk.GetImageFromArray(lung_convex_hull.astype(np.uint32))
             lung_convex_im.CopyInformation(im)
             sitk.WriteImage(lung_convex_im, str(lung_out / filename))
