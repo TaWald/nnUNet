@@ -2,10 +2,10 @@ import SimpleITK as sitk
 import os
 from pathlib import Path
 
-def sitk_convert(nrrd_file: str, nifti_file: str, output_extension: str = ".nii.gz"):
+def sitk_convert(in_file: str, out_file: str):
     """Convert nrrd file to nifti file."""
-    im = sitk.ReadImage(nrrd_file)
-    sitk.WriteImage(im, nifti_file)
+    im = sitk.ReadImage(in_file)
+    sitk.WriteImage(im, out_file)
 
 
 def main():
@@ -24,8 +24,11 @@ def main():
 
     input_path = Path(args.i)
     output_path = Path(args.o)
-
-    for input_file in input_path.glob("*.nii.gz"):
+    
+    print(f"Checking input path: {input_path}")
+    niftis_of_interest = [i for i in input_path.iterdir() if i.name.endswith(".nii.gz")]
+    print(f"Found {len(niftis_of_interest)} niftis of interest.")
+    for input_file in niftis_of_interest:
         output_file = output_path / (input_file.name[:-7] + ".nrrd")
         sitk_convert(input_file, output_file)
 
