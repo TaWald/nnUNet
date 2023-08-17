@@ -435,13 +435,15 @@ def create_convex_hulls_given_totalsegmentator(totalseg_dir: Path, ribcage_out: 
             im = sitk.ReadImage(c)
             data = sitk.GetArrayFromImage(im)
             rib_convex_hull, _ = create_ribcage_convex_hull(data)
-            rib_convex_im = sitk.GetImageFromArray(rib_convex_hull.astype(np.uint32)).CopyInformation(im)
+            rib_convex_im = sitk.GetImageFromArray(rib_convex_hull.astype(np.uint32))
+            rib_convex_im.CopyInformation(im)
             sitk.WriteImage(rib_convex_im, str(ribcage_out / filename))
         if not (lung_out / filename).exists():
             im = sitk.ReadImage(c)
             data = sitk.GetArrayFromImage(im)
             lung_convex_hull = create_outside_lung_axial_mask(data)
-            lung_convex_im = sitk.GetImageFromArray(lung_convex_hull.astype(np.uint32)).CopyInformation(im)
+            lung_convex_im = sitk.GetImageFromArray(lung_convex_hull.astype(np.uint32))
+            lung_convex_im.CopyInformation(im)
             sitk.WriteImage(lung_convex_im, str(lung_out / filename))
     return
         
