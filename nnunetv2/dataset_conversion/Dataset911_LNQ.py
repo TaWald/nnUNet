@@ -240,6 +240,13 @@ def create_original_lnq_dataset(
     return
 
 
+def convert_val_samples(val_dir: Path, val_out_dir: Path):
+    all_files = [v for v in  val_dir.iterdir() if v.name.endswith(".nrrd")]    
+    convert(all_files, val_out_dir)
+    return
+
+
+
 def create_nnunet_dataset(
     train_image_path: Path,
     groundtruth_image_path: Path,
@@ -400,6 +407,10 @@ def main():
     temp_in_path = path_to_data / "total_segmentator_LNQ" / "in"
     temp_lbl_path = path_to_data / "total_segmentator_LNQ" / "lbl"
     temp_out_path = path_to_data / "total_segmentator_LNQ" / "seg"
+    val_path = path_to_data / "val"
+    val_nifti_path = path_to_data / "val_nifti"
+
+    convert_val_samples(val_path, val_nifti_path)
 
     out_dir_default = path_to_data / "background_default"
     out_dir_aorta = path_to_data / "background_no_aorta"
