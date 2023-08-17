@@ -494,8 +494,8 @@ def measure_volume_contained_in_convex_hull(
     groundtruth_dir: Path, convex_hull_dir: Path
 ):
     """Loads same images, and measure how much of label 1 (foreground) of groundtruth is contained in lung/ribcage convex hull (label 1) ."""
-    groundtruth_dict = {k.name.split("-")[:-2]: k for k in groundtruth_dir.iterdir()}
-    convex_hull_dict = {k.name.split("-")[:-2]: k for k in convex_hull_dir.iterdir()}
+    groundtruth_dict = {k.name.split("-")[-2]: k for k in groundtruth_dir.iterdir()}
+    convex_hull_dict = {k.name.split("-")[-2]: k for k in convex_hull_dir.iterdir()}
 
     n_cases = 0
     all_foreground_ratios = []
@@ -608,6 +608,7 @@ def main():
             },
             str(convex_hull_info),
         )
+        print("Finished measuring convex hulls")
 
     (
         mean_res,
