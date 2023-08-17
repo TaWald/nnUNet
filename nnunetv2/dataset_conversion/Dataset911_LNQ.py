@@ -583,6 +583,7 @@ def main():
     )
 
     if not convex_hull_info.exists():
+        print("Measuring the contained images in convex hull of lung and ribcage")
         (
             ribcage_n_cases,
             ribcage_avg_casewise_pct,
