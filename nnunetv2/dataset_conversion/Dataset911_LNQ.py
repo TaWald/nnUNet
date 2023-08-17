@@ -31,7 +31,9 @@ def convert(input_image: list[Path], output_path: Path, append_index_suffix=Fals
     for im in tqdm(input_image):
         im_name = im.name
 
-        nifti_name = im_name[:-5] + ("_0000.nii.gz" if append_index_suffix else ".nii.gz")
+        nifti_name = im_name[:-5] + (
+            "_0000.nii.gz" if append_index_suffix else ".nii.gz"
+        )
         if (output_path / nifti_name).exists():
             continue
         else:
@@ -143,11 +145,11 @@ def find_mutually_exclusive_classes_with_total_segmentator(
         all_groundtruth_files = list(sorted(os.listdir(groundtruth_dir)))
 
         for ts, gt in zip(all_total_segmentator_files, all_groundtruth_files):
-            assert (
-                ts.split("-")[2] == gt.split("-")[2]
-            ), ("Total segmentator and groundtruth files do not match!"
-            + f"N_Totalsegmentator: {len(all_total_segmentator_files)}, N_GT: {len(all_groundtruth_files)}"
-            + f"Case ids: TS: {ts}, GT: {gt}")
+            assert ts.split("-")[2] == gt.split("-")[2], (
+                "Total segmentator and groundtruth files do not match!"
+                + f"N_Totalsegmentator: {len(all_total_segmentator_files)}, N_GT: {len(all_groundtruth_files)}"
+                + f"Case ids: TS: {ts}, GT: {gt}"
+            )
 
         all_results = {}
         for i in range(105):
@@ -216,19 +218,18 @@ def create_original_lnq_dataset(
 
     for train_im, train_label in zip(train_image_label_paths, groundtruth_image_paths):
         case_id = int(train_im.name.split("-")[-2])
-        
+
         shutil.copy(train_im, train_path / (f"{case_id:04}_0000.nrrd"))
         shutil.copy(train_label, label_path / (f"{case_id:04}.nrrd"))
 
-    save_json(dataset_json, output_path / dataset_name /  "dataset.json")
+    save_json(dataset_json, output_path / dataset_name / "dataset.json")
     return
 
 
 def convert_val_samples(val_dir: Path, val_out_dir: Path):
-    all_files = [v for v in  val_dir.iterdir() if v.name.endswith(".nrrd")]    
+    all_files = [v for v in val_dir.iterdir() if v.name.endswith(".nrrd")]
     convert(all_files, val_out_dir, True)
     return
-
 
 
 def create_nnunet_dataset(
@@ -254,7 +255,7 @@ def create_nnunet_dataset(
 
         shutil.copy(train_im, train_path / f"{ids:04}_0000.nii.gz")
         shutil.copy(label_im, label_path / f"{ids:04}.nii.gz")
-    save_json(dataset_json, output_path / dataset_name /  "dataset.json")
+    save_json(dataset_json, output_path / dataset_name / "dataset.json")
     return
 
 
@@ -268,7 +269,7 @@ def simple_multidim_isin(arr1: np.ndarray, values: Sequence[int]):
 
 
 def create_convex_hull_lung_mask(total_segmentator_groundtruth: np.ndarray):
-    """ Creates the convex hull of the lung, setting everthing inside to 1."""
+    """Creates the convex hull of the lung, setting everthing inside to 1."""
 
     left_lung = [13, 14]
     right_lung = [15, 16, 17]
@@ -295,19 +296,21 @@ def create_convex_hull_lung_mask(total_segmentator_groundtruth: np.ndarray):
     """
     return convex_lung_mask
 
-def flood_fill_hull(image):    
+
+def flood_fill_hull(image):
     points = np.transpose(np.where(image))
     hull = scipy.spatial.ConvexHull(points)
-    deln = scipy.spatial.Delaunay(points[hull.vertices]) 
-    idx = np.stack(np.indices(image.shape), axis = -1)
+    deln = scipy.spatial.Delaunay(points[hull.vertices])
+    idx = np.stack(np.indices(image.shape), axis=-1)
     out_idx = np.nonzero(deln.find_simplex(idx) + 1)
     out_img = np.zeros(image.shape)
     out_img[out_idx] = 1
     return out_img, hull
 
+
 def create_ribcage_convex_hull(total_segmentator_groundtruth: np.ndarray):
-    left_ribs = [58,59,60,61,62,63,64,65,66,67,68,69]
-    right_ribs = [70,71,72,73,74,75,76,77,78,79,80,81]
+    left_ribs = [58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69]
+    right_ribs = [70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81]
 
     left_ribs_mask = simple_multidim_isin(total_segmentator_groundtruth, left_ribs)
     right_ribs_mask = simple_multidim_isin(total_segmentator_groundtruth, right_ribs)
@@ -318,7 +321,6 @@ def create_ribcage_convex_hull(total_segmentator_groundtruth: np.ndarray):
     # Assume that z axis is 0
 
     convex_ribcage = flood_fill_hull(joint_rib_mask)
-    
 
     return convex_ribcage
 
@@ -422,9 +424,49 @@ def create_groundtruth_given_totalsegmentator(
 
     return dataset_json
 
-def create_convex_hulls_given_totalsegmentator(totalseg_dir: Path, ribcage_out: Path, lung_out: Path):
+
+def create_convex_hulls(filepath: Path, ribcage_out: Path, lung_out: Path):
+    filename = filepath.name
+    if not (ribcage_out / filename).exists():
+        im = sitk.ReadImage(filepath)
+        data = sitk.GetArrayFromImage(im)
+        rib_convex_hull, _ = create_ribcage_convex_hull(data)
+        rib_convex_im = sitk.GetImageFromArray(rib_convex_hull.astype(np.uint32))
+        rib_convex_im.CopyInformation(im)
+        sitk.WriteImage(rib_convex_im, str(ribcage_out / filename))
+    if not (lung_out / filename).exists():
+        im = sitk.ReadImage(filepath)
+        data = sitk.GetArrayFromImage(im)
+        lung_convex_hull = create_convex_hull_lung_mask(data)
+        lung_convex_im = sitk.GetImageFromArray(lung_convex_hull.astype(np.uint32))
+        lung_convex_im.CopyInformation(im)
+        sitk.WriteImage(lung_convex_im, str(lung_out / filename))
+    return
+
+def mp_create_convex_hulls_given_totalsegmentator(
+    totalseg_dir: Path, ribcage_out: Path, lung_out: Path
+):
     """
-    Create the convex hulls 
+    Create the convex hulls
+    """
+    all_content = [f for f in totalseg_dir.iterdir()]
+    ribcage_out.mkdir(exist_ok=True, parents=True)
+    lung_out.mkdir(exist_ok=True, parents=True)
+
+    from multiprocessing import Pool
+    from functools import partial
+
+    partial_create_convex_hull = partial(create_convex_hulls, ribcage_out=ribcage_out, lung_out=lung_out)
+
+    with Pool(32) as p:
+        p.map(partial_create_convex_hull, all_content)
+    return
+
+def create_convex_hulls_given_totalsegmentator(
+    totalseg_dir: Path, ribcage_out: Path, lung_out: Path
+):
+    """
+    Create the convex hulls
     """
     all_content = [f for f in totalseg_dir.iterdir()]
     ribcage_out.mkdir(exist_ok=True, parents=True)
@@ -446,7 +488,30 @@ def create_convex_hulls_given_totalsegmentator(totalseg_dir: Path, ribcage_out: 
             lung_convex_im.CopyInformation(im)
             sitk.WriteImage(lung_convex_im, str(lung_out / filename))
     return
-        
+
+
+def measure_volume_contained_in_convex_hull(
+    groundtruth_dir: Path, convex_hull_dir: Path
+):
+    """Loads same images, and measure how much of label 1 (foreground) of groundtruth is contained in lung/ribcage convex hull (label 1) ."""
+    groundtruth_dict = {k.name.split("-")[:-2]: k for k in groundtruth_dir.iterdir()}
+    convex_hull_dict = {k.name.split("-")[:-2]: k for k in convex_hull_dir.iterdir()}
+
+    n_cases = 0
+    all_foreground_ratios = []
+    non_zero_pct = []
+    for k in groundtruth_dict:
+        gt_im = sitk.GetArrayFromImage(sitk.ReadImage(str(groundtruth_dict[k])))
+        convex_im = sitk.GetArrayFromImage(sitk.ReadImage(str(convex_hull_dict[k])))
+
+        foreground_ratio_in_case = np.sum(
+            np.logical_and(gt_im == 1, convex_im == 1)
+        ) / np.sum(gt_im == 1)
+        if foreground_ratio_in_case != 1:
+            n_cases += 1
+            non_zero_pct.append(foreground_ratio_in_case)
+        all_foreground_ratios.append(foreground_ratio_in_case)
+    return n_cases, float(np.mean(all_foreground_ratios)), float(np.mean(non_zero_pct))
 
 
 def main():
@@ -472,6 +537,7 @@ def main():
 
     path_to_data = Path("/dkfz/cluster/gpu/data/OE0441/t006d/LNQ/")
     meta_info_path = path_to_data / "meta_info.json"
+    convex_hull_info = path_to_data / "convex_hull_info.json"
     temp_in_path = path_to_data / "total_segmentator_LNQ" / "in"
     temp_lbl_path = path_to_data / "total_segmentator_LNQ" / "lbl"
     temp_out_path = path_to_data / "total_segmentator_LNQ" / "seg"
@@ -512,7 +578,37 @@ def main():
     convert(remaining_labels, temp_lbl_path)
     total_segmentator_predict_dir(temp_in_path, temp_out_path)
     print("Creating convex hulls given Totalsegmentator")
-    create_convex_hulls_given_totalsegmentator(temp_out_path, ribcage_out_path, lung_out_path)
+    mp_create_convex_hulls_given_totalsegmentator(
+        temp_out_path, ribcage_out_path, lung_out_path
+    )
+
+    if not convex_hull_info.exists():
+        (
+            ribcage_n_cases,
+            ribcage_avg_casewise_pct,
+            ribcage_non_zero_pct,
+        ) = measure_volume_contained_in_convex_hull(temp_lbl_path, ribcage_out_path)
+        (
+            lung_n_cases,
+            lung_avg_casewise_pct,
+            lung_non_zero_pct,
+        ) = measure_volume_contained_in_convex_hull(temp_lbl_path, lung_out_path)
+        save_json(
+            {
+                "ribcage": {
+                    "n_cases": ribcage_n_cases,
+                    "avg_casewise_pct": ribcage_avg_casewise_pct,
+                    "non_zero_pct": ribcage_non_zero_pct,
+                },
+                "lung": {
+                    "n_cases": lung_n_cases,
+                    "avg_casewise_pct": lung_avg_casewise_pct,
+                    "non_zero_pct": lung_non_zero_pct,
+                },
+            },
+            str(convex_hull_info),
+        )
+
     (
         mean_res,
         non_zero_mean,
@@ -540,7 +636,9 @@ def main():
         temp_out_path, background_classes_no_aorta, temp_lbl_path, out_dir_aorta
     )
 
-    print("No Aorta with boundary class dataset: Create groundtruth given total segmentator")
+    print(
+        "No Aorta with boundary class dataset: Create groundtruth given total segmentator"
+    )
     no_aorta_with_boundary_class_dataset_json = (
         create_groundtruth_given_totalsegmentator(
             temp_out_path,
@@ -576,11 +674,11 @@ def main():
         nnunet_raw_data_path,
         "Dataset911_LNQ_original",
         dataset_json={
-        "channel_names": {"0": "CT"},
-        "labels": {'background':0 , 'lymphnode': 1},
-        "numTraining": len(only_train_images),
-        "file_ending": ".nrrd",
-    }
+            "channel_names": {"0": "CT"},
+            "labels": {"background": 0, "lymphnode": 1},
+            "numTraining": len(only_train_images),
+            "file_ending": ".nrrd",
+        },
     )
 
     print("Create Dataset912_aorta_not_background")
@@ -600,7 +698,7 @@ def main():
         dataset_name="Dataset913_aorta_not_background_with_boundary_class",
         dataset_json=no_aorta_with_boundary_class_dataset_json,
     )
-    
+
     print("Create Dataset914_medium_overlap_not_background.")
     create_nnunet_dataset(
         train_image_path=temp_in_path,
