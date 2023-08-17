@@ -6,6 +6,7 @@ import time
 from typing import Sequence
 import nrrd
 import numpy as np
+import scipy
 from tqdm import tqdm
 import vtk
 import SimpleITK as sitk
@@ -13,45 +14,28 @@ from scipy.ndimage import morphology
 from batchgenerators.utilities.file_and_folder_operations import save_json, load_json
 import torch
 from torch.cuda import OutOfMemoryError
-
+from skimage import morphology as sk_morphology
 
 from totalsegmentator.python_api import totalsegmentator
 
 
-def readnrrd(filename):
-    """Read image in nrrd format."""
-    reader = vtk.vtkNrrdReader()
-    reader.SetFileName(filename)
-    reader.Update()
-    info = reader.GetInformation()
-    return reader.GetOutput(), info
-
-
-def writenifti(image, filename, info):
-    """Write nifti file."""
-    writer = vtk.vtkNIFTIImageWriter()
-    writer.SetInputData(image)
-    writer.SetFileName(filename)
-    writer.SetInformation(info)
-    writer.Write()
-
-
-def convert_nrrd_to_nifti(nrrd_file: str, nifti_file: str):
+def convert_types(nrrd_file: str, nifti_file: str):
     """Convert nrrd file to nifti file."""
-    image, info = readnrrd(nrrd_file)
-    writenifti(image, nifti_file, info)
+    im = sitk.ReadImage(nrrd_file)
+    sitk.WriteImage(im, nifti_file)
 
 
-def convert(input_image: list[Path], output_path: Path):
+def convert(input_image: list[Path], output_path: Path, append_index_suffix=False):
     """Convert all nrrd files in input_images to nifti files in output_path."""
     output_path.mkdir(exist_ok=True, parents=True)
     for im in tqdm(input_image):
         im_name = im.name
-        nifti_name = im_name[:-5] + ".nii.gz"
+
+        nifti_name = im_name[:-5] + ("_0000.nii.gz" if append_index_suffix else ".nii.gz")
         if (output_path / nifti_name).exists():
             continue
         else:
-            convert_nrrd_to_nifti(str(im), str(output_path / nifti_name))
+            convert_types(str(im), str(output_path / nifti_name))
 
 
 def total_segmentator_predict_dir(case_dir, output_dir):
@@ -242,7 +226,7 @@ def create_original_lnq_dataset(
 
 def convert_val_samples(val_dir: Path, val_out_dir: Path):
     all_files = [v for v in  val_dir.iterdir() if v.name.endswith(".nrrd")]    
-    convert(all_files, val_out_dir)
+    convert(all_files, val_out_dir, True)
     return
 
 
@@ -281,6 +265,62 @@ def simple_multidim_isin(arr1: np.ndarray, values: Sequence[int]):
         all_masks.append(arr1 == val)
     mask = np.sum(np.stack(all_masks), axis=0) != 0
     return mask
+
+
+def create_outside_lung_axial_mask(total_segmentator_groundtruth: np.ndarray):
+    """ Creates the convex hull between lung lobes for all z-slices where both lung lobes are present.
+        The 'certain' background is set to 1 and the unceratain can be assumed ."""
+
+    left_lung = [13, 14]
+    right_lung = [15, 16, 17]
+
+    left_lung_mask = simple_multidim_isin(total_segmentator_groundtruth, left_lung)
+    right_lung_mask = simple_multidim_isin(total_segmentator_groundtruth, right_lung)
+
+    joint_lung_mask = np.logical_or(left_lung_mask, right_lung_mask)
+
+    # We want the minimum and the maximum along each dimension.
+    # Assume that z axis is 0
+    left_non_zero_z_ids = np.argwhere(np.sum(left_lung_mask, axis=[1,2]) != 0)  # Only leaves z axis
+    right_non_zero_z_ids = np.argwhere(np.sum(right_lung_mask, axis=[1,2]) != 0)  # Only leaves z axis
+
+    minimum_joint_z_score = max(min(left_non_zero_z_ids), min(right_non_zero_z_ids))
+    maximum_joint_z_score = min(max(left_non_zero_z_ids), max(right_non_zero_z_ids))
+
+    non_convex_lung_mask = np.zeros_like(total_segmentator_groundtruth)    
+    for z in range(minimum_joint_z_score, maximum_joint_z_score):
+        slice = joint_lung_mask[z]
+        convex_hull = sk_morphology.convex_hull_image(slice)
+        non_convex_lung_mask[z] = np.logical_not(convex_hull)  # 1 Where Convex hull is not, 0 where it is. (0 is ignore label later)
+    
+    return non_convex_lung_mask
+
+def flood_fill_hull(image):    
+    points = np.transpose(np.where(image))
+    hull = scipy.spatial.ConvexHull(points)
+    deln = scipy.spatial.Delaunay(points[hull.vertices]) 
+    idx = np.stack(np.indices(image.shape), axis = -1)
+    out_idx = np.nonzero(deln.find_simplex(idx) + 1)
+    out_img = np.zeros(image.shape)
+    out_img[out_idx] = 1
+    return out_img, hull
+
+def create_ribcage_convex_hull(total_segmentator_groundtruth: np.ndarray):
+    left_ribs = [58,59,60,61,62,63,64,65,66,67,68,69]
+    right_ribs = [70,71,72,73,74,75,76,77,78,79,80,81]
+
+    left_ribs_mask = simple_multidim_isin(total_segmentator_groundtruth, left_ribs)
+    right_ribs_mask = simple_multidim_isin(total_segmentator_groundtruth, right_ribs)
+
+    joint_rib_mask = np.logical_or(left_ribs_mask, right_ribs_mask)
+
+    # We want the minimum and the maximum along each dimension.
+    # Assume that z axis is 0
+
+    convex_ribcage = flood_fill_hull(joint_rib_mask)
+    
+
+    return convex_ribcage
 
 
 def create_groundtruth_given_totalsegmentator(
@@ -337,6 +377,8 @@ def create_groundtruth_given_totalsegmentator(
             ts_data, total_segmentator_background_class_ids
         )  # This is slow but running it once is enough, so who cares
 
+        total_segmentator_lung_region = create_outside_lung_axial_mask()
+
         # Set all total segmentator predicted classes (that we want to set to background) to background
         final_groundtruth = np.where(
             total_segmentator_mask, labels["background"], final_groundtruth
@@ -380,6 +422,30 @@ def create_groundtruth_given_totalsegmentator(
 
     return dataset_json
 
+def create_convex_hulls_given_totalsegmentator(totalseg_dir: Path, ribcage_out: Path, lung_out: Path):
+    """
+    Create the convex hulls 
+    """
+    all_content = [f for f in totalseg_dir.iterdir()]
+    ribcage_out.mkdir(exist_ok=True, parents=True)
+    lung_out.mkdir(exist_ok=True, parents=True)
+    for c in all_content:
+        filename = c.name
+        if not (ribcage_out / filename).exists():
+            im = sitk.ReadImage(c)
+            data = sitk.GetArrayFromImage(im)
+            rib_convex_hull = create_ribcage_convex_hull(data)
+            rib_convex_im = sitk.GetImageFromArray(rib_convex_hull.astype(np.uint32)).CopyInformation(im)
+            sitk.WriteImage(rib_convex_im, str(ribcage_out / filename))
+        if not (lung_out / filename).exists():
+            im = sitk.ReadImage(c)
+            data = sitk.GetArrayFromImage(im)
+            lung_convex_hull = create_outside_lung_axial_mask(data)
+            lung_convex_im = sitk.GetImageFromArray(lung_convex_hull.astype(np.uint32)).CopyInformation(im)
+            sitk.WriteImage(lung_convex_im, str(lung_out / filename))
+    return
+        
+
 
 def main():
     """
@@ -407,6 +473,8 @@ def main():
     temp_in_path = path_to_data / "total_segmentator_LNQ" / "in"
     temp_lbl_path = path_to_data / "total_segmentator_LNQ" / "lbl"
     temp_out_path = path_to_data / "total_segmentator_LNQ" / "seg"
+    ribcage_out_path = path_to_data / "total_segmentator_LNQ" / "ribcage_convex_hull"
+    lung_out_path = path_to_data / "total_segmentator_LNQ" / "lung_convex_hull"
     val_path = path_to_data / "val"
     val_nifti_path = path_to_data / "val_nifti"
 
@@ -441,7 +509,7 @@ def main():
     convert(remaining_cases, temp_in_path)
     convert(remaining_labels, temp_lbl_path)
     total_segmentator_predict_dir(temp_in_path, temp_out_path)
-
+    create_convex_hulls_given_totalsegmentator(temp_out_path, ribcage_out_path, lung_out_path)
     (
         mean_res,
         non_zero_mean,
