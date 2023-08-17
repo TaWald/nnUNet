@@ -491,13 +491,13 @@ def create_convex_hulls_given_totalsegmentator(
 
 
 def measure_convex_hull_and_groundtruth(
-        gt_im_path
+        gt_path, im_path
 ) -> tuple[int, float]:
     """Loads same images, and measure how much of label 1 (foreground) of groundtruth is contained in lung/ribcage convex hull (label 1) ."""
-    gt_im = sitk.GetArrayFromImage(sitk.ReadImage(str(gt_im_path[0])))
-    convex_im = sitk.GetArrayFromImage(sitk.ReadImage(str(gt_im_path[1])))
+    gt_im = sitk.GetArrayFromImage(sitk.ReadImage(str(gt_path[0])))
+    convex_im = sitk.GetArrayFromImage(sitk.ReadImage(str(im_path[1])))
 
-    case_name = gt_im_path[0].name
+    case_name = gt_path.name
 
     foreground_ratio_in_case = np.sum(np.logical_and(gt_im == 1, convex_im == 1)) / np.sum(gt_im == 1)
     if foreground_ratio_in_case != 1:
