@@ -494,8 +494,8 @@ def measure_convex_hull_and_groundtruth(
         gt_path, im_path
 ) -> tuple[int, float]:
     """Loads same images, and measure how much of label 1 (foreground) of groundtruth is contained in lung/ribcage convex hull (label 1) ."""
-    gt_im = sitk.GetArrayFromImage(sitk.ReadImage(str(gt_path[0])))
-    convex_im = sitk.GetArrayFromImage(sitk.ReadImage(str(im_path[1])))
+    gt_im = sitk.GetArrayFromImage(sitk.ReadImage(str(gt_path)))
+    convex_im = sitk.GetArrayFromImage(sitk.ReadImage(str(im_path)))
 
     case_name = gt_path.name
 
