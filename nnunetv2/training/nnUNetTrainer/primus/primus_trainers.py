@@ -215,3 +215,59 @@ class nnUNet_Primus_L_Trainer(AbstractPrimus):
             init_values=0.1,
         )
         return model
+
+
+class _Primus_S_96_BS1(nnUNet_Primus_S_Trainer):
+    def __init__(
+        self,
+        plans: dict,
+        configuration: str,
+        fold: int,
+        dataset_json: dict,
+        device: torch.device = torch.device("cuda"),
+    ):
+        plans["configurations"][configuration]["patch_size"] = (96, 96, 96)  # As per repository
+        plans["configurations"][configuration]["batch_size"] = 1
+        super().__init__(plans, configuration, fold, dataset_json, device)
+
+
+class _Primus_B_96_BS1(nnUNet_Primus_B_Trainer):
+    def __init__(
+        self,
+        plans: dict,
+        configuration: str,
+        fold: int,
+        dataset_json: dict,
+        device: torch.device = torch.device("cuda"),
+    ):
+        plans["configurations"][configuration]["patch_size"] = (96, 96, 96)  # As per repository
+        plans["configurations"][configuration]["batch_size"] = 1
+        super().__init__(plans, configuration, fold, dataset_json, device)
+
+
+class _Primus_M_96_BS1(nnUNet_Primus_M_Trainer):
+    def __init__(
+        self,
+        plans: dict,
+        configuration: str,
+        fold: int,
+        dataset_json: dict,
+        device: torch.device = torch.device("cuda"),
+    ):
+        plans["configurations"][configuration]["patch_size"] = (96, 96, 96)  # As per repository
+        plans["configurations"][configuration]["batch_size"] = 1
+        super().__init__(plans, configuration, fold, dataset_json, device)
+
+
+class _Primus_L_96_BS1(nnUNet_Primus_L_Trainer):
+    def __init__(
+        self,
+        plans: dict,
+        configuration: str,
+        fold: int,
+        dataset_json: dict,
+        device: torch.device = torch.device("cuda"),
+    ):
+        plans["configurations"][configuration]["patch_size"] = (96, 96, 96)  # As per repository
+        plans["configurations"][configuration]["batch_size"] = 1
+        super().__init__(plans, configuration, fold, dataset_json, device)
