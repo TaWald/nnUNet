@@ -1,0 +1,234 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Test training Transformer Archs",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/nnunetv2/run/run_training.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "40",
+                "3d_fullres",
+                "0",
+                "-tr",
+                "_Primus_S_96_BS1",
+                "-p",
+                "nnUNetPlans"
+
+            ],
+            "env":{
+                "nnUNet_raw": "/mnt/cluster-data-all/t006d/nnunetv2/raw_data",
+                "nnUNet_preprocessed": "/mnt/cluster-data-all/t006d/nnunetv2/preprocessed", // "/mnt/cluster-data-all/isensee/nnUNet_preprocessed", //"/mnt/cluster-data-all/t006d/nnunetv2/preprocessed",
+                "nnUNet_results": "/mnt/cluster-data-all/t006d/nnunetv2/results",
+                "nnUNet_n_proc_DA": "12",
+                "nnUNet_compile": "0",
+                // "CUDA_LAUNCH_BLOCKING": "1"
+            }
+        },
+        {
+            "name": "Accumulate Results",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/nnunetv2/batch_running/collect_results_custom_Decathlon.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "env":{
+                // "nnUNet_raw": "/mnt/cluster-data-all/t006d/nnunetv2/raw_data",
+                // "nnUNet_preprocessed": "/mnt/cluster-data-all/isensee/nnUNet_preprocessed",
+                "nnUNet_results": "/mnt/nvme2/2025_Wald_Isensee_Roy_Transformed/nnunet_results",
+                "nnUNet_n_proc_DA": "12",
+                "nnUNet_compile": "0",
+                // "CUDA_LAUNCH_BLOCKING": "1"
+            }
+        },
+        {
+            "name": "Train ViT 121212 wPosEmbed woRope",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nnunetv2/run/run_training.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "220",
+                "3d_fullres",
+                "0",
+                "-tr",
+                "PreEva_Vit_Trainer_121212_wPosEmbed_woRope",  // "MaskedEvaTrainer_888_mask013"
+            ],
+            "env":{
+                "nnUNet_raw": "/mnt/cluster-data-all/t006d/nnunetv2/raw_data",
+                "nnUNet_preprocessed": "/mnt/cluster-data-all/isensee/nnUNet_preprocessed",
+                "nnUNet_results": "/mnt/cluster-data-all/t006d/nnunetv2/results",
+                "nnUNet_n_proc_DA": "12",
+                "nnUNet_compile": "0",
+                // "CUDA_LAUNCH_BLOCKING": "1"
+            }
+        },
+        {
+            "name": "Train UNTER",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nnunetv2/run/run_training.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "220",
+                "3d_fullres",
+                "0",
+                "-tr",
+                "nnUNetTrainerV2_UNETR",  // "MaskedEvaTrainer_888_mask013"
+            ],
+            "env":{
+                "nnUNet_raw": "/mnt/cluster-data-all/t006d/nnunetv2/raw_data",
+                "nnUNet_preprocessed": "/mnt/cluster-data-all/isensee/nnUNet_preprocessed",
+                "nnUNet_results": "/mnt/cluster-data-all/t006d/nnunetv2/results",
+                "nnUNet_n_proc_DA": "12",
+                "nnUNet_compile": "0",
+                // "CUDA_LAUNCH_BLOCKING": "1"
+            }
+        },
+        {
+            "name": "Train swinUNETR",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nnunetv2/run/run_training.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "220",
+                "3d_fullres",
+                "0",
+                "-tr",
+                "nnUNetTrainerV2_SwinUNETR",  // "MaskedEvaTrainer_888_mask013"
+            ],
+            "env":{
+                "nnUNet_raw": "/mnt/cluster-data-all/t006d/nnunetv2/raw_data",
+                "nnUNet_preprocessed": "/mnt/cluster-data-all/isensee/nnUNet_preprocessed",
+                "nnUNet_results": "/mnt/cluster-data-all/t006d/nnunetv2/results",
+                "nnUNet_n_proc_DA": "12",
+                "nnUNet_compile": "0",
+                // "CUDA_LAUNCH_BLOCKING": "1"
+            }
+        },
+        // {
+        //     "name": "Train nnFormer",
+        //     "type": "python",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/nnunetv2/run/run_training.py",
+        //     "console": "integratedTerminal",
+        //     "justMyCode": false,
+        //     "args": [
+        //         "220",
+        //         "3d_fullres",
+        //         "0",
+        //         "-tr",
+        //         "nnUNetTrainerV2_nnFormer_96x96x96",  // "MaskedEvaTrainer_888_mask013"
+        //     ],
+        //     "env":{
+        //         "nnUNet_raw": "/mnt/cluster-data-all/t006d/nnunetv2/raw_data",
+        //         "nnUNet_preprocessed": "/mnt/cluster-data-all/isensee/nnUNet_preprocessed",
+        //         "nnUNet_results": "/mnt/cluster-data-all/t006d/nnunetv2/results",
+        //         "nnUNet_n_proc_DA": "12",
+        //         "nnUNet_compile": "0",
+        //         // "CUDA_LAUNCH_BLOCKING": "1"
+        //     }
+        // },
+        {
+            "name": "Train CoTR",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nnunetv2/run/run_training.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "220",
+                "3d_fullres",
+                "0",
+                "-tr",
+                "nnUNetTrainerV2_ResTrans",  // "MaskedEvaTrainer_888_mask013"
+            ],
+            "env":{
+                "nnUNet_raw": "/mnt/cluster-data-all/t006d/nnunetv2/raw_data",
+                "nnUNet_preprocessed": "/mnt/cluster-data-all/isensee/nnUNet_preprocessed",
+                "nnUNet_results": "/mnt/cluster-data-all/t006d/nnunetv2/results",
+                "nnUNet_n_proc_DA": "12",
+                "nnUNet_compile": "0",
+                // "CUDA_LAUNCH_BLOCKING": "1"
+            }
+        },
+        {
+            "name": "Train Eva 444 StructMask875",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nnunetv2/run/run_training.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "220",
+                "3d_fullres",
+                "0",
+                "-tr",
+                "MaskedEvaTrainer_444_structuredmask0875",  // "MaskedEvaTrainer_888_mask013"
+            ],
+            "env":{
+                "nnUNet_raw": "/mnt/cluster-data-all/t006d/nnunetv2/raw_data",
+                "nnUNet_preprocessed": "/mnt/cluster-data-all/isensee/nnUNet_preprocessed",
+                "nnUNet_results": "/mnt/cluster-data-all/t006d/nnunetv2/results",
+                "nnUNet_n_proc_DA": "12",
+                "nnUNet_compile": "1",
+                // "CUDA_LAUNCH_BLOCKING": "1"
+            }
+        },
+                {
+            "name": "Train nnFormer",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nnunetv2/run/run_training.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "204",
+                "3d_fullres",
+                "0",
+                "-tr",
+                "nnUNetTrainer_Eva3_adamW_3en4_wd5en2_gradClip1_DropPath02_DoubleDecode", //"nnUNetTrainer", // "EvaM_Aug_S_hig_I_hig",  // "MaskedEvaTrainer_888_mask013"
+            ],
+            "env":{
+                // "nnUNet_raw": "/mnt/cluster-data-all/t006d/nnunetv2/raw_data",
+                "nnUNet_preprocessed": "/mnt/cluster-data-all/isensee/nnUNet_preprocessed",
+                "nnUNet_results": "/mnt/E132-Projekte/Projects/2025_Wald_Isensee_Roy_Transformed/nnunet_results",
+                "nnUNet_n_proc_DA": "0",
+                "nnUNet_compile": "0",
+                // "CUDA_LAUNCH_BLOCKING": "1"
+            }
+        },
+        {
+            "name": "Train standard_indice_thingy",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/nnunetv2/run/run_training.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "223",
+                "3d_fullres",
+                "0",
+                "-tr",
+                "nnUNetTrainer_sparse_eva_444_random"
+            ],
+            "env":{
+                "nnUNet_raw": "/mnt/cluster-data-all/t006d/nnunetv2/raw_data",
+                "nnUNet_preprocessed": "/mnt/cluster-data-all/isensee/nnUNet_preprocessed",
+                "nnUNet_results": "/mnt/cluster-data-all/t006d/nnunetv2/results",
+                "nnUNet_n_proc_DA": "12",
+                "nnUNet_compile": "0",
+                // "CUDA_LAUNCH_BLOCKING": "1"
+            }
+        }
+    ]
+}

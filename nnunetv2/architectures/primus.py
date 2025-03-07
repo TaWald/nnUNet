@@ -3,7 +3,7 @@ from dynamic_network_architectures.building_blocks.helper import convert_dim_to_
 import torch
 from torch import nn
 import numpy as np
-from timm.layers import RotaryEmbeddingCat
+from timm.layers import RotaryEmbeddingCat, PatchDropout
 from dynamic_network_architectures.initialization.weight_init import InitWeights_He
 from einops import rearrange
 

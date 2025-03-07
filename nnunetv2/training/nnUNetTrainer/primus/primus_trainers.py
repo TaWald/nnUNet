@@ -1,8 +1,9 @@
 from abc import abstractmethod
+from typing import List, Tuple, Union
 import torch
 from torch import nn, autocast
 from nnunetv2.architectures.primus import LayerNormNd, Primus
-from nnunetv2.training.nnUNetTrainer.variants.lr_schedule import nnUNetTrainer_warmup
+from nnunetv2.training.nnUNetTrainer.variants.lr_schedule.nnUNetTrainer_warmup import nnUNetTrainer_warmup
 from nnunetv2.utilities.plans_handling.plans_handler import ConfigurationManager
 from torch.nn.parallel import DistributedDataParallel as DDP
 from nnunetv2.training.lr_scheduler.warmup import Lin_incr_LRScheduler, PolyLRScheduler_offset
@@ -25,7 +26,10 @@ class AbstractPrimus(nnUNetTrainer_warmup):
 
     @abstractmethod
     def build_network_architecture(
-        configuration_manager: ConfigurationManager,
+        self,
+        architecture_class_name: str,
+        arch_init_kwargs: dict,
+        arch_init_kwargs_req_import: Union[List[str], Tuple[str, ...]],
         num_input_channels: int,
         num_output_channels: int,
         enable_deep_supervision: bool = True,
@@ -111,9 +115,11 @@ class AbstractPrimus(nnUNetTrainer_warmup):
 
 class nnUNet_Primus_S_Trainer(AbstractPrimus):
 
-    @staticmethod
     def build_network_architecture(
-        configuration_manager: ConfigurationManager,
+        self,
+        architecture_class_name: str,
+        arch_init_kwargs: dict,
+        arch_init_kwargs_req_import: Union[List[str], Tuple[str, ...]],
         num_input_channels: int,
         num_output_channels: int,
         enable_deep_supervision: bool = True,
@@ -126,7 +132,7 @@ class nnUNet_Primus_S_Trainer(AbstractPrimus):
             num_output_channels,
             12,
             6,
-            configuration_manager.patch_size,
+            self.configuration_manager.patch_size,
             decoder_norm=LayerNormNd,
             decoder_act=nn.GELU,
             drop_path_rate=0.2,
@@ -138,9 +144,11 @@ class nnUNet_Primus_S_Trainer(AbstractPrimus):
 
 class nnUNet_Primus_B_Trainer(AbstractPrimus):
 
-    @staticmethod
     def build_network_architecture(
-        configuration_manager: ConfigurationManager,
+        self,
+        architecture_class_name: str,
+        arch_init_kwargs: dict,
+        arch_init_kwargs_req_import: Union[List[str], Tuple[str, ...]],
         num_input_channels: int,
         num_output_channels: int,
         enable_deep_supervision: bool = True,
@@ -153,7 +161,7 @@ class nnUNet_Primus_B_Trainer(AbstractPrimus):
             num_output_channels,
             12,
             12,
-            configuration_manager.patch_size,
+            self.configuration_manager.patch_size,
             decoder_norm=LayerNormNd,
             decoder_act=nn.GELU,
             drop_path_rate=0.2,
@@ -165,9 +173,11 @@ class nnUNet_Primus_B_Trainer(AbstractPrimus):
 
 class nnUNet_Primus_M_Trainer(AbstractPrimus):
 
-    @staticmethod
     def build_network_architecture(
-        configuration_manager: ConfigurationManager,
+        self,
+        architecture_class_name: str,
+        arch_init_kwargs: dict,
+        arch_init_kwargs_req_import: Union[List[str], Tuple[str, ...]],
         num_input_channels: int,
         num_output_channels: int,
         enable_deep_supervision: bool = True,
@@ -180,7 +190,7 @@ class nnUNet_Primus_M_Trainer(AbstractPrimus):
             num_output_channels,
             16,
             12,
-            configuration_manager.patch_size,
+            self.configuration_manager.patch_size,
             decoder_norm=LayerNormNd,
             decoder_act=nn.GELU,
             drop_path_rate=0.2,
@@ -192,9 +202,11 @@ class nnUNet_Primus_M_Trainer(AbstractPrimus):
 
 class nnUNet_Primus_L_Trainer(AbstractPrimus):
 
-    @staticmethod
     def build_network_architecture(
-        configuration_manager: ConfigurationManager,
+        self,
+        architecture_class_name: str,
+        arch_init_kwargs: dict,
+        arch_init_kwargs_req_import: Union[List[str], Tuple[str, ...]],
         num_input_channels: int,
         num_output_channels: int,
         enable_deep_supervision: bool = True,
@@ -207,7 +219,7 @@ class nnUNet_Primus_L_Trainer(AbstractPrimus):
             num_output_channels,
             24,
             16,
-            configuration_manager.patch_size,
+            self.configuration_manager.patch_size,
             decoder_norm=LayerNormNd,
             decoder_act=nn.GELU,
             drop_path_rate=0.2,
