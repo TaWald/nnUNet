@@ -1,5 +1,6 @@
 import warnings
 from typing import Union
+import torch
 
 # Add ugly import guards to not break nnunet in case wrong dynamic-network-architectures version.
 try:
@@ -16,27 +17,40 @@ from dynamic_network_architectures.architectures.unet import ResidualEncoderUNet
 
 
 def get_network_from_name(
-    arch_class_name, input_channels, output_channels, allow_init=True, deep_supervision: Union[bool, None] = None
+    arch_class_name,
+    input_channels,
+    output_channels,
+    input_patchsize: tuple[int, int, int] | None = None,
+    allow_init=True,
+    deep_supervision: Union[bool, None] = None,
 ):
     if arch_class_name == "PrimusS":
         network = PrimusS(
             input_channels=input_channels,
-            num_classes=output_channels,
+            output_channels=output_channels,
+            patch_embed_size=(8, 8, 8),
+            input_shape=input_patchsize,
         )
     elif arch_class_name == "PrimusM":
         network = PrimusM(
             input_channels=input_channels,
-            num_classes=output_channels,
+            output_channels=output_channels,
+            patch_embed_size=(8, 8, 8),
+            input_shape=input_patchsize,
         )
     elif arch_class_name == "PrimusL":
         network = PrimusL(
             input_channels=input_channels,
-            num_classes=output_channels,
+            output_channels=output_channels,
+            patch_embed_size=(8, 8, 8),
+            input_shape=input_patchsize,
         )
     elif arch_class_name == "PrimusB":
         network = PrimusB(
             input_channels=input_channels,
-            num_classes=output_channels,
+            output_channels=output_channels,
+            patch_embed_size=(8, 8, 8),
+            input_shape=input_patchsize,
         )
     elif arch_class_name == "ResEncL":
         n_stages = 6
