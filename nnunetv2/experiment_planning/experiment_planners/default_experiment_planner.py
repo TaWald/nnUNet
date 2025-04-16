@@ -275,6 +275,10 @@ class ExperimentPlanner(object):
                                                              999999)
         num_stages = len(pool_op_kernel_sizes)
 
+        spacing = list(spacing)
+        if len(spacing) == 2:
+            spacing = [None] + spacing
+
         norm = get_matching_instancenorm(unet_conv_op)
         architecture_kwargs = {
             'network_class_name': self.UNet_class.__module__ + '.' + self.UNet_class.__name__,
