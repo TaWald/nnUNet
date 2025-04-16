@@ -112,6 +112,7 @@ def preprocess_like_nnssl(
 
     # -------------------------------- Adapt plan -------------------------------- #
     adapted_plans = deepcopy(downstream_plans_manager)
+    config = list(adaptation_plan["pretrain_plan"]["configurations"].keys())[0]
     pretrain_info = {
         "checkpoint_path": pt_ckpt,
         "checkpoint_name": pretrain_name,
@@ -120,7 +121,7 @@ def preprocess_like_nnssl(
         "keys_to_in_proj": adaptation_plan["keys_to_in_proj"],
         "key_to_lpe": adaptation_plan["key_to_lpe"],
         "pt_num_in_channels": adaptation_plan["pretrain_num_input_channels"],
-        "pt_used_patchsize": adaptation_plan["pretrain_plan"]["configurations"]["onemmiso"]["patch_size"],
+        "pt_used_patchsize": adaptation_plan["pretrain_plan"]["configurations"][config]["patch_size"],
         "pt_recommended_downstream_patchsize": adaptation_plan["recommended_downstream_patchsize"],
         # ToDo (Maybe): Add pretrain patch size here instead of overwriting?
         #   Also might make sense to add info on the recommended patch size for downstream training.
