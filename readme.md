@@ -1,4 +1,4 @@
-# Welcome to the nnssl pretraining support Framework for nnUNet!
+# Welcome to the nnssl pretraining segmentation adaptation framework!
 
 >Authored by: Tassilo Wald & Constantin Ulrich
 
