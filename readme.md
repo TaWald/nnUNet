@@ -10,7 +10,7 @@ Pre-training is a great way to improve performance of a model on a downstream da
 ## Getting Started:
 
 <details>
-<summary>### Installation:</summary>
+<summary> <h3>Installation:</h3></summary>
 
 To install this repository you need to follow these steps:
 
