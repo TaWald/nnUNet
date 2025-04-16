@@ -6,7 +6,6 @@ import numpy as np
 # from numpy.core.multiarray
 
 from nnunetv2.preprocessing.preprocessors.default_preprocessor import DefaultPreprocessor
-from nnunetv2.preprocessing.preprocessors.nnssl_preprocessor import NnsslPreprocessor
 from nnunetv2.utilities.plans_handling.plans_handler import ConfigurationManager, PlansManager
 from nnunetv2.paths import nnUNet_preprocessed
 from nnunetv2.utilities.dataset_name_id_conversion import convert_id_to_dataset_name
