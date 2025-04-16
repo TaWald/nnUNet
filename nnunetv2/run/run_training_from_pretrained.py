@@ -118,7 +118,7 @@ def train_pretrained_entrypoint():
         "-tr",
         type=str,
         required=False,
-        default="nnUNetTrainer",
+        default="PretrainedTrainer",
         help="[OPTIONAL] Use this flag to specify a custom trainer. Default: nnUNetTrainer",
     )
     parser.add_argument(
