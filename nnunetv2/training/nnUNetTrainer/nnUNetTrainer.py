@@ -3,6 +3,7 @@ import multiprocessing
 import os
 import shutil
 import sys
+from types import FrameType
 import warnings
 from copy import deepcopy
 from datetime import datetime
@@ -108,8 +109,24 @@ class nnUNetTrainer(object):
         # would also pickle the network etc. Bad, bad. Instead we just reinstantiate and then load the checkpoint we
         # need. So let's save the init args
         self.my_init_kwargs = {}
-        for k in inspect.signature(self.__init__).parameters.keys():
-            self.my_init_kwargs[k] = locals()[k]
+        cur_frame = inspect.currentframe()
+
+        def prev_frame_is_trainer_class(frame: FrameType):
+            """Check if AbstractBaseTrainer child class is in previous frame."""
+            prev_frame = frame.f_back
+            if "self" in prev_frame.f_locals:
+                if isinstance(prev_frame.f_locals["self"], nnUNetTrainer):
+                    return True
+            return False
+
+        # Find the highest level frame that is Child of AbstractBaseTrainer -- Holds original init args!
+        while prev_frame_is_trainer_class(cur_frame):
+            cur_frame = cur_frame.f_back
+
+        # Use the inspect module to get the init args and their values in highest frame
+        for k in inspect.signature(cur_frame.f_locals["self"].__init__).parameters.keys():
+            self.my_init_kwargs[k] = cur_frame.f_locals[k]
+        # self.my_init_kwargs = make_serializable(self.my_init_kwargs)  Maybe needed to write json
 
         ###  Saving all the init args into class variables for later access
         self.plans_manager = PlansManager(plans)
