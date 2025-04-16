@@ -6,7 +6,7 @@ import torch
 
 from batchgenerators.utilities.file_and_folder_operations import isfile
 
-from dynamic_network_architectures.architectures.abtract_arch import AbstractDynamicNetworkArchitectures
+from dynamic_network_architectures.architectures.abstract_arch import AbstractDynamicNetworkArchitectures
 from dynamic_network_architectures.architectures.primus import PrimusX
 
 from nnunetv2.utilities.get_network_via_name import get_network_from_name
