@@ -1,6 +1,7 @@
 # Welcome to the nnssl pretraining support Framework for nnUNet!
 
-Authored by: Tassilo Wald & Constantin Ulrich
+>Authored by: Tassilo Wald & Constantin Ulrich
+
 This is a temporary development branch that is intended to later be integrated into nnU-Net fully once proven stable enough. 
 It is heavily dependent on the [nnssl](https://github.com/MIC-DKFZ/nnssl) framework and allows (hopefully) really simple adaptation of the pre-trained checkpoints from it.
 
