@@ -379,11 +379,6 @@ class PretrainedTrainer(nnUNetTrainer):
         super().on_train_epoch_start()
 
 
-class PretrainedTrainerOther(PretrainedTrainer):
-    pass
-
-
-
 class PretrainedTrainer_Primus(PretrainedTrainer):
 
     def __init__(
