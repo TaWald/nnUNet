@@ -41,6 +41,7 @@ class PretrainedTrainer(nnUNetTrainer):
     ):
         super().__init__(plans, configuration, fold, dataset_json, device)
         # Can be overriden to train same architecture from scratch.
+        self.initial_lr = 1e-3
         self.enable_deep_supervision = False
         self.warmup_duration_whole_net = 50  # lin increase whole network
         self.use_pretrained_weights = use_pretrained_weights
