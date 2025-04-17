@@ -268,7 +268,7 @@ class PretrainedTrainer(nnUNetTrainer):
             assert (
                 len(lpe_weights) == 1
             ), f"Found multiple lpe weights, but expect only a single tensor. Got {list(lpe_weights.keys())}"
-            network.get_submodule(key_to_lpe).load_state_dict({"", lpe_weights[0]})
+            network.get_parameter(key_to_lpe).data = list(lpe_weights.values())[0]
             # ------------------------------- Load weights ------------------------------- #
 
         # Theoretically we don't need to return the network, but we do it anyway.
