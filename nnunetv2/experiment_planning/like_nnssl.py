@@ -200,6 +200,7 @@ def preprocess_like_nnssl_entrypoint():
         "-os",
         "--override_spacing",
         required=False,
+        type=float,
         nargs="+",
         help="[OPTIONAL] When choosing the fixed adaptation mode, you need to specify it and provide the target spacing of the data.",
     )
