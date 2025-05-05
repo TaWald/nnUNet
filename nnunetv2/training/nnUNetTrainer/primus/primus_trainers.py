@@ -3,6 +3,7 @@ from typing import List, Tuple, Union
 import torch
 from torch import nn, autocast
 from nnunetv2.architectures.primus import LayerNormNd, Primus
+from nnunetv2.training.nnUNetTrainer.nnUNetTrainer import nnUNetTrainer
 from nnunetv2.training.nnUNetTrainer.variants.lr_schedule.nnUNetTrainer_warmup import nnUNetTrainer_warmup
 from nnunetv2.utilities.plans_handling.plans_handler import ConfigurationManager
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -198,6 +199,34 @@ class nnUNet_Primus_M_Trainer(AbstractPrimus):
             init_values=0.1,
         )
         return model
+
+
+class nnUNet_Primus_M_Trainer_BS8(AbstractPrimus):
+
+    def __init__(
+        self,
+        plans: dict,
+        configuration: str,
+        fold: int,
+        dataset_json: dict,
+        device: torch.device = torch.device("cuda"),
+    ):
+        super().__init__(plans, configuration, fold, dataset_json, device)
+        self.configuration_manager.batch_size = 8
+
+
+class nnUNet_Trainer_BS8(nnUNetTrainer):
+
+    def __init__(
+        self,
+        plans: dict,
+        configuration: str,
+        fold: int,
+        dataset_json: dict,
+        device: torch.device = torch.device("cuda"),
+    ):
+        super().__init__(plans, configuration, fold, dataset_json, device)
+        self.configuration_manager.batch_size = 8
 
 
 class nnUNet_Primus_L_Trainer(AbstractPrimus):
