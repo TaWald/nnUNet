@@ -201,7 +201,7 @@ class nnUNet_Primus_M_Trainer(AbstractPrimus):
         return model
 
 
-class nnUNet_Primus_M_Trainer_BS8(AbstractPrimus):
+class nnUNet_Primus_M_Trainer_BS8(nnUNet_Primus_M_Trainer):
 
     def __init__(
         self,
