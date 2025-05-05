@@ -11,9 +11,8 @@ nnUNet_Primus_B_Trainer
 nnUNet_Primus_M_Trainer
 nnUNet_Primus_L_Trainer
 ```
-To run a training simply call
-
+To run a training of Primus M plan and preprocess as you would do for the ResEnc U-Net in nnU-Net.
+Then call:
 ```bash
-nnUNetv2_train <dataset_id> <config> <fold>`
+nnUNetv2_train <dataset_id> <config> <fold> -tr nnUNet_Primus_M_Trainer
 ```
-Be sure to plan_and_preprocess as you would do for the ResEnc U-Net in nnU-Net.
