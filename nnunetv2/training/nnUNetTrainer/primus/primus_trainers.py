@@ -215,6 +215,21 @@ class nnUNet_Primus_M_Trainer_BS8(nnUNet_Primus_M_Trainer):
         self.configuration_manager.configuration["batch_size"] = 8
 
 
+class nnUNet_Primus_M_Trainer_BS8_2e4(nnUNet_Primus_M_Trainer):
+
+    def __init__(
+        self,
+        plans: dict,
+        configuration: str,
+        fold: int,
+        dataset_json: dict,
+        device: torch.device = torch.device("cuda"),
+    ):
+        super().__init__(plans, configuration, fold, dataset_json, device)
+        self.initial_lr = 2e-4
+        self.configuration_manager.configuration["batch_size"] = 8
+
+
 class nnUNet_Trainer_BS8(nnUNetTrainer):
 
     def __init__(
@@ -227,6 +242,7 @@ class nnUNet_Trainer_BS8(nnUNetTrainer):
     ):
         super().__init__(plans, configuration, fold, dataset_json, device)
         self.configuration_manager.configuration["batch_size"] = 8
+
 
 class nnUNet_Primus_L_Trainer(AbstractPrimus):
 
