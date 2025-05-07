@@ -54,6 +54,8 @@ nnUNetv2_plan_and_preprocess -d <dataset_identifier> --no_pp
 # Preprocess the dataset like nnssl would
 nnUNetv2_preprocess_like_nnssl -d <dataset_identifier> -n <UniqueNameOfTraining> -pc <Path/to/the/pretrained/checkpoint.pth> -am "like_pretrained"
 ```
+*To easily fine-tune a model you can use any [nnssl pre-trained model from hugging face](https://huggingface.co/collections/MIC-DKFZ/openmind-models-6819c21c7fe6f0aaaab7dadf) e.g. the MAE pre-trained ResEnc-L model. Simply pass a Hugging Face URL to `-pc` https://huggingface.co/AnonRes/ResEncL-OpenMind-MAE to automatically download the model and use it for fine-tuning.*
+
 This command first creates the fingerprint and default nnU-Net plans for the dataset. 
 Then the new `nnUNetv2_preprocess_like_nnssl` uses the pre-existing plan as well as your pre-trained checkpoint to automatically pre-process the dataset in the same way as the pre-training did. 
 The specific preprocessing can be different through the `-am`/`--adaptation_mode` argument, which changes how the spacing of the downstream dataset is set. We mostly recommend `like_pretrained` which is mostly 1x1x1 mm isotropic, however this may be a bad choice for datasets with much smaller spacings, for which we recommend using `adaptation_mode` which sets it to the datasets median spacing. 

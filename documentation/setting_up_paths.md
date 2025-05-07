@@ -34,5 +34,7 @@ throughput (such as a nvme SSD (PCIe gen 3 is sufficient)).
 3) `nnUNet_results`: This specifies where nnU-Net will save the model weights. If pretrained models are downloaded, this 
 is where it will save them.
 
+4) `nnssl_pretrained_models`: *(Mandatory for pre-trained model downloads from Hugging Face)* Specifies where models will be stored when automatically downloading from Hugging Face. Alternatively you can also manually pass a path to a local checkpoint instead.
+
 ### How to set environment variables
 See [here](set_environment_variables.md).
