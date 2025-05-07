@@ -14,6 +14,8 @@ Locate the `.bashrc` file in your home folder and add the following lines to the
 export nnUNet_raw="/media/fabian/nnUNet_raw"
 export nnUNet_preprocessed="/media/fabian/nnUNet_preprocessed"
 export nnUNet_results="/media/fabian/nnUNet_results"
+# Optional: Only required when you want to use pretrained models from nnssl
+export nnssl_pretrained_models="/media/fabian/nnssl_pretrained_models"
 ```
 
 (Of course you need to adapt the paths to the actual folders you intend to use).
@@ -25,6 +27,8 @@ Just execute the following lines whenever you run nnU-Net:
 export nnUNet_raw="/media/fabian/nnUNet_raw"
 export nnUNet_preprocessed="/media/fabian/nnUNet_preprocessed"
 export nnUNet_results="/media/fabian/nnUNet_results"
+# Optional: Only required when you want to use pretrained models from nnssl
+export nnssl_pretrained_models="/media/fabian/nnssl_pretrained_models"
 ```
 (Of course you need to adapt the paths to the actual folders you intend to use).
 
@@ -56,6 +60,8 @@ Just execute the following before you run nnU-Net:
 $Env:nnUNet_raw = "C:/Users/fabian/nnUNet_raw"
 $Env:nnUNet_preprocessed = "C:/Users/fabian/nnUNet_preprocessed"
 $Env:nnUNet_results = "C:/Users/fabian/nnUNet_results"
+# Optional: Only required when you want to use pretrained models from nnssl
+$Env:nnssl_pretrained_models="C:/Users/fabian/nnssl_pretrained_models"
 ```
 
 (Command Prompt)
@@ -63,6 +69,8 @@ $Env:nnUNet_results = "C:/Users/fabian/nnUNet_results"
 set nnUNet_raw=C:/Users/fabian/nnUNet_raw
 set nnUNet_preprocessed=C:/Users/fabian/nnUNet_preprocessed
 set nnUNet_results=C:/Users/fabian/fabian/nnUNet_results
+# Optional: Only required when you want to use pretrained models from nnssl
+set nnssl_pretrained_models=C:/Users/fabian/nnssl_pretrained_models
 ```
 
 (Of course you need to adapt the paths to the actual folders you intend to use).
