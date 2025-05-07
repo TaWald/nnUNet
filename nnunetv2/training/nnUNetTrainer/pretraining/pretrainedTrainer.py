@@ -472,3 +472,10 @@ class PretrainedTrainer_Primus(PretrainedTrainer):
             torch.nn.utils.clip_grad_norm_(self.network.parameters(), 1)
             self.optimizer.step()
         return {"loss": l.detach().cpu().numpy()}
+
+    def set_deep_supervision_enabled(self, enabled: bool):
+        """
+        This function is specific for the default architecture in nnU-Net. If you change the architecture, there are
+        chances you need to change this as well!
+        """
+    pass
