@@ -48,6 +48,23 @@ class PretrainedTrainer(nnUNetTrainer):
         self.adaptation_info = self.plans_manager.plans["pretrain_info"]
         self.training_stage = None
 
+    def print_citations(self):
+        cits = self.adaptation_info.get("citations", [])
+        if len(cits) > 0:
+            all_strings = []
+            all_strings.append(
+                "\n#######################################################################\nPlease cite the associated papers when using pre-trained weights:\n"
+            )
+            for cit in sorted(cits, key=lambda x: x["type"]):
+                all_strings.append(f"{cit['type']} used '{cit['name']}'. Associated paper(s):")
+                for c in cit["apa_citations"]:
+                    all_strings.append(c)
+                all_strings[-1] += "\n"
+            all_strings.append("#######################################################################\n")
+            final_string = "\n".join(all_strings)
+            self.print_to_log_file(final_string, add_timestamp=False)
+        return
+
     def initialize(self):
         if not self.was_initialized:
             ## DDP batch size and oversampling can differ between workers and needs adaptation
@@ -71,16 +88,6 @@ class PretrainedTrainer(nnUNetTrainer):
                 enable_deep_supervision=False,
             ).to(self.device)
 
-            """
-            # TODO.
-            # Example of self.adaptation_info. Lacks a few things
-            {
-            'checkpoint_name': 'MAE_Tester_D742',
-              'checkpoint_path': '/mnt/cluster-data-all/t006d/nnunetv2/nnssl_results/Dataset742_Small_OASIS3_T1_T2_smal...ns__onemmiso/fold_all/checkpoint_final.pth',
-                'key_to_encoder': 'encoder.stages', 
-                'key_to_stem': 'encoder.stem'
-                }
-            """
             # Load pretrained weights
             if self.use_pretrained_weights:
                 assert (
@@ -101,7 +108,8 @@ class PretrainedTrainer(nnUNetTrainer):
                     pt_keys_to_in_proj=tuple(self.adaptation_info["keys_to_in_proj"]),
                     pt_key_to_lpe=self.adaptation_info["key_to_lpe"],
                 )
-            self.print_to_log_file('Loaded Network from {}'.format(self.adaptation_info["checkpoint_path"]))
+                self.print_citations()
+            self.print_to_log_file("Loaded Network from {}".format(self.adaptation_info["checkpoint_path"]))
             # compile network for free speedup
             if self._do_i_compile():
                 self.print_to_log_file("Using torch.compile...")
@@ -248,11 +256,11 @@ class PretrainedTrainer(nnUNetTrainer):
             # --------------------------------- Adapt LPE -------------------------------- #
             if need_to_ignore_lpe:
                 if lpe_in_stem:  # Since stem not in encoder we need to take care of lpe in it here
-                    new_stem_weights[strip_dot_prefix(key_to_lpe.replace(pt_key_to_stem, ""))] = (
+                    new_stem_weights[strip_dot_prefix(key_to_lpe.replace(key_to_stem, ""))] = (
                         random_init_statedict[key_to_lpe]
                     )
                 elif lpe_in_encoder:
-                    new_encoder_weights[strip_dot_prefix(key_to_lpe.replace(pt_key_to_encoder, ""))] = (
+                    new_encoder_weights[strip_dot_prefix(key_to_lpe.replace(key_to_encoder, ""))] = (
                         random_init_statedict[key_to_lpe]
                     )
                 else:
@@ -330,8 +338,8 @@ class PretrainedTrainer(nnUNetTrainer):
             raise NotImplementedError("Unknown architecture class name: {}".format(architecture_class_name))
         return network
 
-    def configure_optimizers(self, stage: str = 'warmup_all'):
-        assert stage in ['warmup_all', 'train']
+    def configure_optimizers(self, stage: str = "warmup_all"):
+        assert stage in ["warmup_all", "train"]
 
         if self.training_stage == stage:
             return self.optimizer, self.lr_scheduler
@@ -341,22 +349,26 @@ class PretrainedTrainer(nnUNetTrainer):
         else:
             params = self.network.parameters()
 
-        if stage == 'warmup_all':
+        if stage == "warmup_all":
             self.print_to_log_file("train whole net, warmup")
-            optimizer = torch.optim.SGD(params, self.initial_lr, weight_decay=self.weight_decay,
-                                        momentum=0.99, nesterov=True)
+            optimizer = torch.optim.SGD(
+                params, self.initial_lr, weight_decay=self.weight_decay, momentum=0.99, nesterov=True
+            )
             lr_scheduler = Lin_incr_LRScheduler(optimizer, self.initial_lr, self.warmup_duration_whole_net)
             self.print_to_log_file(f"Initialized warmup_all optimizer and lr_scheduler at epoch {self.current_epoch}")
         else:
             self.print_to_log_file("train whole net, default schedule")
-            if self.training_stage == 'warmup_all':
+            if self.training_stage == "warmup_all":
                 # we can keep the existing optimizer and don't need to create a new one. This will allow us to keep
                 # the accumulated momentum terms which already point in a useful driection
                 optimizer = self.optimizer
             else:
-                optimizer = torch.optim.SGD(params, self.initial_lr, weight_decay=self.weight_decay,
-                                            momentum=0.99, nesterov=True)
-            lr_scheduler = PolyLRScheduler_offset(optimizer, self.initial_lr, self.num_epochs, self.warmup_duration_whole_net)
+                optimizer = torch.optim.SGD(
+                    params, self.initial_lr, weight_decay=self.weight_decay, momentum=0.99, nesterov=True
+                )
+            lr_scheduler = PolyLRScheduler_offset(
+                optimizer, self.initial_lr, self.num_epochs, self.warmup_duration_whole_net
+            )
             self.print_to_log_file(f"Initialized train optimizer and lr_scheduler at epoch {self.current_epoch}")
         self.training_stage = stage
         empty_cache(self.device)
@@ -382,13 +394,13 @@ class PretrainedTrainer(nnUNetTrainer):
 class PretrainedTrainer_Primus(PretrainedTrainer):
 
     def __init__(
-            self,
-            plans: dict,
-            configuration: str,
-            fold: int,
-            dataset_json: dict,
-            use_pretrained_weights: bool = True,
-            device: torch.device = torch.device("cuda"),
+        self,
+        plans: dict,
+        configuration: str,
+        fold: int,
+        dataset_json: dict,
+        use_pretrained_weights: bool = True,
+        device: torch.device = torch.device("cuda"),
     ):
         super().__init__(plans, configuration, fold, dataset_json, device)
         # Can be overriden to train same architecture from scratch.
@@ -399,8 +411,8 @@ class PretrainedTrainer_Primus(PretrainedTrainer):
         self.use_pretrained_weights = use_pretrained_weights
         self.adaptation_info = self.plans_manager.plans["pretrain_info"]
 
-    def configure_optimizers(self, stage: str = 'warmup_all'):
-        assert stage in ['warmup_all', 'train']
+    def configure_optimizers(self, stage: str = "warmup_all"):
+        assert stage in ["warmup_all", "train"]
 
         if self.training_stage == stage:
             return self.optimizer, self.lr_scheduler
@@ -410,26 +422,32 @@ class PretrainedTrainer_Primus(PretrainedTrainer):
         else:
             params = self.network.parameters()
 
-        if stage == 'warmup_all':
+        if stage == "warmup_all":
             self.print_to_log_file("train whole net, warmup")
-            optimizer = torch.optim.AdamW(params, self.initial_lr, weight_decay=self.weight_decay,
-                                          amsgrad=False, betas=(0.9, 0.98), fused=True)
+            optimizer = torch.optim.AdamW(
+                params, self.initial_lr, weight_decay=self.weight_decay, amsgrad=False, betas=(0.9, 0.98), fused=True
+            )
             lr_scheduler = Lin_incr_LRScheduler(optimizer, self.initial_lr, self.warmup_duration_whole_net)
             self.print_to_log_file(f"Initialized warmup_all optimizer and lr_scheduler at epoch {self.current_epoch}")
         else:
             self.print_to_log_file("train whole net, default schedule")
-            if self.training_stage == 'warmup_all':
+            if self.training_stage == "warmup_all":
                 # we can keep the existing optimizer and don't need to create a new one. This will allow us to keep
                 # the accumulated momentum terms which already point in a useful driection
                 optimizer = self.optimizer
             else:
-                optimizer = torch.optim.AdamW(params, self.initial_lr,
-                                              weight_decay=self.weight_decay,
-                                              amsgrad=False, betas=(0.9, 0.98), fused=True)
-            lr_scheduler = PolyLRScheduler_offset(optimizer, self.initial_lr, self.num_epochs,
-                                                  self.warmup_duration_whole_net)
+                optimizer = torch.optim.AdamW(
+                    params,
+                    self.initial_lr,
+                    weight_decay=self.weight_decay,
+                    amsgrad=False,
+                    betas=(0.9, 0.98),
+                    fused=True,
+                )
+            lr_scheduler = PolyLRScheduler_offset(
+                optimizer, self.initial_lr, self.num_epochs, self.warmup_duration_whole_net
+            )
             self.print_to_log_file(f"Initialized train optimizer and lr_scheduler at epoch {self.current_epoch}")
         self.training_stage = stage
         empty_cache(self.device)
         return optimizer, lr_scheduler
-

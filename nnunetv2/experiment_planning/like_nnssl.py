@@ -1,4 +1,5 @@
 from copy import deepcopy
+import os
 from typing import Literal, get_args
 import torch
 import numpy as np
@@ -11,6 +12,8 @@ from nnunetv2.paths import nnUNet_preprocessed
 from nnunetv2.utilities.dataset_name_id_conversion import convert_id_to_dataset_name
 from batchgenerators.utilities.file_and_folder_operations import join, load_json, save_json, isfile
 import argparse
+from pathlib import Path
+from huggingface_hub import hf_hub_download
 
 
 ADAPTATION_MODES = Literal["fixed", "default_nnunet", "no_resample", "like_pretrained"]
@@ -104,6 +107,7 @@ def preprocess_like_nnssl(
 
     loaded_pretrain_ckpt = torch.load(pt_ckpt, weights_only=True)
     adaptation_plan = loaded_pretrain_ckpt["nnssl_adaptation_plan"]
+    citations = loaded_pretrain_ckpt["citations"] if "citations" in loaded_pretrain_ckpt else []
     pretrain_config = list(adaptation_plan["pretrain_plan"]["configurations"].values())[0]
     pretrain_spacing = pretrain_config["spacing"]
     architecture_details: dict = adaptation_plan["architecture_plans"]
@@ -123,6 +127,7 @@ def preprocess_like_nnssl(
         "pt_num_in_channels": adaptation_plan["pretrain_num_input_channels"],
         "pt_used_patchsize": adaptation_plan["pretrain_plan"]["configurations"][config]["patch_size"],
         "pt_recommended_downstream_patchsize": adaptation_plan["recommended_downstream_patchsize"],
+        "citations": citations,
         # ToDo (Maybe): Add pretrain patch size here instead of overwriting?
         #   Also might make sense to add info on the recommended patch size for downstream training.
         #   Also could help to give info if e.g. pos. Embedding should be re-initialized or not.
@@ -162,6 +167,52 @@ def preprocess_like_nnssl(
     # We never overwrite existing currently, as multiple preprocessors can share the same data files.
     #     Otherwise stuff might break.
     preprocessor.run(dataset_id, "3d_fullres", plans_name, num_processes=num_processes, overwrite_existing=False)
+
+
+def maybe_download_pretrained_weights(pretrained_checkpoint_path: str):
+    """
+    Check if the pretrained checkpoint path points to a hugging face directory.
+    If it does, check the repository has an adaptation_plan.json file indicating compatibility with nnssl.
+    If it exists, download the checkpoint and store it. Then replace the local path with the URL and continue as usual.
+    :param pretrained_checkpoint_path: Path or URL to the pretrained checkpoint.
+    """
+
+    # Check if the path is a Hugging Face repository URL
+    if pretrained_checkpoint_path.startswith("https://huggingface.co/"):
+        assert (
+            "nnssl_pretrained_models" in os.environ
+        ), "To allow auto-downloading weights you need to set the environment variable 'nnssl_pretrained_models' to the path where you want to store the pretrained models."
+        local_dir = os.environ["nnssl_pretrained_models"]
+        repo_id = pretrained_checkpoint_path.split("https://huggingface.co/")[-1].strip("/")
+
+        final_path = os.path.join(local_dir, repo_id.replace("/", "_"))
+        if not os.path.exists(final_path):
+            os.makedirs(final_path, exist_ok=True)
+        # Check if the repository contains the adaptation_plan.json file
+        try:
+            _ = hf_hub_download(repo_id=repo_id, filename="adaptation_plan.json", local_dir=final_path)
+        except Exception as e:
+            raise ValueError(
+                f"The repository {repo_id} does not contain an adaptation_plan.json file.\n"
+                "This indicates that the checkpoint is not compatible with this fine-tuning workflow."
+                f"Error: {e}"
+            )
+
+        # Download the checkpoint file
+        try:
+            checkpoint_path = hf_hub_download(repo_id=repo_id, filename="checkpoint_final.pth", local_dir=final_path)
+            # For download tracking purposes
+            _ = hf_hub_download(repo_id=repo_id, filename="config.json", local_dir=final_path)
+        except Exception as e:
+            raise ValueError(f"Failed to download the checkpoint file from the repository {repo_id}. " f"Error: {e}")
+
+        # Replace the local path with the downloaded checkpoint path
+        pretrained_checkpoint_path = checkpoint_path
+
+    # Verify the local path exists
+    if not Path(pretrained_checkpoint_path).is_file():
+        raise FileNotFoundError(f"The pretrained checkpoint path {pretrained_checkpoint_path} does not exist.")
+    return pretrained_checkpoint_path
 
 
 def preprocess_like_nnssl_entrypoint():
@@ -237,6 +288,8 @@ def preprocess_like_nnssl_entrypoint():
     override_spacing: tuple[float, float, float] | None = args.override_spacing
     num_processes: int = args.np
     verbose: bool = args.verbose
+
+    pretrained_checkpoint_path: str = maybe_download_pretrained_weights(pretrained_checkpoint_path)
 
     preprocess_like_nnssl(
         dataset_id=dataset_ids,
