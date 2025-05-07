@@ -130,7 +130,7 @@ def train_pretrained_entrypoint():
     parser.add_argument(
         "--from_scratch",
         required=False,
-        action="store_false",
+        action="store_true",
         help="[OPTIONAL] flag to train from scratch with same config as when loading checkpoints.",
     )
     parser.add_argument(
