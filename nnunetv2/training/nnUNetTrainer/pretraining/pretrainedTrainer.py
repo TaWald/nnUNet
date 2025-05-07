@@ -391,7 +391,7 @@ class PretrainedTrainer_Primus(PretrainedTrainer):
         use_pretrained_weights: bool = True,
         device: torch.device = torch.device("cuda"),
     ):
-        super().__init__(plans, configuration, fold, dataset_json, device)
+        super().__init__(plans, configuration, fold, dataset_json, use_pretrained_weights, device)
         # Can be overriden to train same architecture from scratch.
         self.initial_lr = 3e-4
         self.weight_decay = 5e-2

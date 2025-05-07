@@ -12,7 +12,7 @@ class PretrainedTrainer_150ep(PretrainedTrainer):
             use_pretrained_weights: bool = True,
             device: torch.device = torch.device("cuda"),
     ):
-        super().__init__(plans, configuration, fold, dataset_json, device)
+        super().__init__(plans, configuration, fold, dataset_json, use_pretrained_weights, device)
         # Can be overriden to train same architecture from scratch.
         self.initial_lr = 1e-3
         self.warmup_duration_whole_net = 15  # lin increase whole network
@@ -28,7 +28,7 @@ class PretrainedTrainer_Primus_150ep(PretrainedTrainer_Primus):
             use_pretrained_weights: bool = True,
             device: torch.device = torch.device("cuda"),
     ):
-        super().__init__(plans, configuration, fold, dataset_json, device)
+        super().__init__(plans, configuration, fold, dataset_json, use_pretrained_weights,device)
         # Can be overriden to train same architecture from scratch.
         self.initial_lr = 1e-4
         self.warmup_duration_whole_net = 15  # lin increase whole network
