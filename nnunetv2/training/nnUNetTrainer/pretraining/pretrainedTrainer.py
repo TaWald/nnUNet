@@ -1,27 +1,16 @@
 from copy import deepcopy
 from typing import Literal, Tuple, Union, List
-
-
 import torch
-
 from batchgenerators.utilities.file_and_folder_operations import isfile
-
 from dynamic_network_architectures.architectures.abstract_arch import AbstractDynamicNetworkArchitectures
-from dynamic_network_architectures.architectures.primus import PrimusX
 from nnunetv2.training.lr_scheduler.warmup import Lin_incr_LRScheduler, PolyLRScheduler_offset
 from nnunetv2.utilities.get_network_via_name import get_network_from_name
-
-from torch import nn
-
-
+from torch import nn, autocast
 from torch.nn.parallel import DistributedDataParallel as DDP
-
-
 from nnunetv2.training.dataloading.nnunet_dataset import infer_dataset_class
-
 from nnunetv2.training.lr_scheduler.polylr import PolyLRScheduler
 from nnunetv2.training.nnUNetTrainer.nnUNetTrainer import nnUNetTrainer
-from nnunetv2.utilities.helpers import empty_cache
+from nnunetv2.utilities.helpers import empty_cache, dummy_context
 from nnunetv2.utilities.get_network_from_plans import get_network_from_plans
 from nnunetv2.utilities.label_handling.label_handling import determine_num_input_channels
 
@@ -451,3 +440,35 @@ class PretrainedTrainer_Primus(PretrainedTrainer):
         self.training_stage = stage
         empty_cache(self.device)
         return optimizer, lr_scheduler
+
+    def train_step(self, batch: dict) -> dict:
+        data = batch["data"]
+        target = batch["target"]
+
+        data = data.to(self.device, non_blocking=True)
+        if isinstance(target, list):
+            target = [i.to(self.device, non_blocking=True) for i in target]
+        else:
+            target = target.to(self.device, non_blocking=True)
+
+        self.optimizer.zero_grad(set_to_none=True)
+        # Autocast can be annoying
+        # If the device_type is 'cpu' then it's slow as heck and needs to be disabled.
+        # If the device_type is 'mps' then it will complain that mps is not implemented, even if enabled=False is set. Whyyyyyyy. (this is why we don't make use of enabled=False)
+        # So autocast will only be active if we have a cuda device.
+        with autocast(self.device.type, enabled=True) if self.device.type == "cuda" else dummy_context():
+            output = self.network(data)
+            # del data
+            l = self.loss(output, target)
+
+        if self.grad_scaler is not None:
+            self.grad_scaler.scale(l).backward()
+            self.grad_scaler.unscale_(self.optimizer)
+            torch.nn.utils.clip_grad_norm_(self.network.parameters(), 1)
+            self.grad_scaler.step(self.optimizer)
+            self.grad_scaler.update()
+        else:
+            l.backward()
+            torch.nn.utils.clip_grad_norm_(self.network.parameters(), 1)
+            self.optimizer.step()
+        return {"loss": l.detach().cpu().numpy()}
