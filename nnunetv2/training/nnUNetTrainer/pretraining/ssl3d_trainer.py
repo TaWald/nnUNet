@@ -15,7 +15,8 @@ class PretrainedTrainer_150ep(PretrainedTrainer):
         super().__init__(plans, configuration, fold, dataset_json, use_pretrained_weights, device)
         # Can be overriden to train same architecture from scratch.
         self.initial_lr = 1e-3
-        self.warmup_duration_whole_net = 15  # lin increase whole network
+        self.warmup_duration_whole_net = 15 # lin increase whole network
+        self.num_epochs = 150
 
 class PretrainedTrainer_Primus_150ep(PretrainedTrainer_Primus):
 
