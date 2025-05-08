@@ -3,6 +3,7 @@ from typing import Literal, Tuple, Union, List
 import torch
 from batchgenerators.utilities.file_and_folder_operations import isfile
 from dynamic_network_architectures.architectures.abstract_arch import AbstractDynamicNetworkArchitectures
+from torch._dynamo import OptimizedModule
 
 from nnunetv2.training.loss.dice import get_tp_fp_fn_tn
 from nnunetv2.training.lr_scheduler.warmup import Lin_incr_LRScheduler, PolyLRScheduler_offset
@@ -381,6 +382,59 @@ class PretrainedTrainer(nnUNetTrainer):
 
         super().on_train_epoch_start()
 
+    def get_stage(self):
+        if self.current_epoch < self.warmup_duration_whole_net:
+            stage = 'warmup_all'
+        else:
+            stage = 'train'
+        return stage
+
+    def load_checkpoint(self, filename_or_checkpoint: Union[dict, str]) -> None:
+        """
+        We need to overwrite that entire function because we need to fiddle the correct optimizer in between
+        loading the checkpoint and applying the optimizer states. Yuck.
+        """
+        if not self.was_initialized:
+            self.initialize()
+
+        if isinstance(filename_or_checkpoint, str):
+            checkpoint = torch.load(filename_or_checkpoint, map_location=self.device, weights_only=False) # will be changed soon
+        # if state dict comes from nn.DataParallel but we use non-parallel model here then the state dict keys do not
+        # match. Use heuristic to make it match
+        new_state_dict = {}
+        for k, value in checkpoint['network_weights'].items():
+            key = k
+            if key not in self.network.state_dict().keys() and key.startswith('module.'):
+                key = key[7:]
+            new_state_dict[key] = value
+
+        self.my_init_kwargs = checkpoint['init_args']
+        self.current_epoch = checkpoint['current_epoch']
+        self.logger.load_checkpoint(checkpoint['logging'])
+        self._best_ema = checkpoint['_best_ema']
+        self.inference_allowed_mirroring_axes = checkpoint[
+            'inference_allowed_mirroring_axes'] if 'inference_allowed_mirroring_axes' in checkpoint.keys() \
+            else self.inference_allowed_mirroring_axes
+
+        # messing with state dict naming schemes. Facepalm.
+        if self.is_ddp:
+            if isinstance(self.network.module, OptimizedModule):
+                self.network.module._orig_mod.load_state_dict(new_state_dict)
+            else:
+                self.network.module.load_state_dict(new_state_dict)
+        else:
+            if isinstance(self.network, OptimizedModule):
+                self.network._orig_mod.load_state_dict(new_state_dict)
+            else:
+                self.network.load_state_dict(new_state_dict)
+
+        self.optimizer, self.lr_scheduler = self.configure_optimizers(self.get_stage())
+
+        self.optimizer.load_state_dict(checkpoint['optimizer_state'])
+        if self.grad_scaler is not None:
+            if checkpoint['grad_scaler_state'] is not None:
+                self.grad_scaler.load_state_dict(checkpoint['grad_scaler_state'])
+
 
 class PretrainedTrainer_Primus(PretrainedTrainer):
 
@@ -459,7 +513,7 @@ class PretrainedTrainer_Primus(PretrainedTrainer):
         # If the device_type is 'mps' then it will complain that mps is not implemented, even if enabled=False is set. Whyyyyyyy. (this is why we don't make use of enabled=False)
         # So autocast will only be active if we have a cuda device.
         with autocast(self.device.type, enabled=True) if self.device.type == "cuda" else dummy_context():
-            output, _ = self.network(data)
+            output = self.network(data)
             # del data
             l = self.loss(output, target)
 
@@ -481,6 +535,40 @@ class PretrainedTrainer_Primus(PretrainedTrainer):
         chances you need to change this as well!
         """
         pass
+
+class PretrainedTrainer_150ep(PretrainedTrainer):
+
+    def __init__(
+            self,
+            plans: dict,
+            configuration: str,
+            fold: int,
+            dataset_json: dict,
+            use_pretrained_weights: bool = True,
+            device: torch.device = torch.device("cuda"),
+    ):
+        super().__init__(plans, configuration, fold, dataset_json, use_pretrained_weights, device)
+        # Can be overriden to train same architecture from scratch.
+        self.initial_lr = 1e-3
+        self.warmup_duration_whole_net = 15 # lin increase whole network
+        self.num_epochs = 150
+
+class PretrainedTrainer_Primus_150ep(PretrainedTrainer_Primus):
+
+    def __init__(
+            self,
+            plans: dict,
+            configuration: str,
+            fold: int,
+            dataset_json: dict,
+            use_pretrained_weights: bool = True,
+            device: torch.device = torch.device("cuda"),
+    ):
+        super().__init__(plans, configuration, fold, dataset_json, use_pretrained_weights,device)
+        # Can be overriden to train same architecture from scratch.
+        self.initial_lr = 1e-4
+        self.warmup_duration_whole_net = 15  # lin increase whole network
+        self.num_epochs = 150 # lin increase whole network
 
 
 
