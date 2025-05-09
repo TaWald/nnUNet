@@ -113,4 +113,6 @@ ENV/
 
 *.model
 
+.vscode/launch.json
+
 !documentation/assets/scribble_example.png
