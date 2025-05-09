@@ -72,8 +72,8 @@ This should start the training of your model with the default `PretrainedTrainer
 
 
 # Acknowledgements
-<img src="documentation/assets/HI_Logo.png" height="100px" />
+<img src="assets/HI_Logo.png" height="100px" />
 
-<img src="documentation/assets/dkfz_logo.png" height="100px" />
+<img src="assets/dkfz_logo.png" height="100px" />
 
 This nnssl adaptation branch is developed and maintained by the [Division of Medical Image Computing](https://www.dkfz.de/en/mic/index.php) at the [German Cancer Research Center (DKFZ)](https://www.dkfz.de/en/index.html) and is part of the Helmholtz Foundation Model Initiative (HFMI) project of The Human Radiome Project [THRP](https://hfmi.helmholtz.de/pilot-projects/thrp/)

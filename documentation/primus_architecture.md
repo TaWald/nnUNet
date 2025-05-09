@@ -2,7 +2,8 @@
 
 [Primus](https://arxiv.org/abs/2503.01835) is a pure Transformer-based 3D semantic segmentation architecture. As opposed to previous 'transformer architectures' it is the first transformer architecture that actually depends on the attention paradigm to do 3D semantic segmentation. Primus is built on top of the nnU-Net framework and is fully compatible with it. It is designed to be easy to use and can be trained on any 3D dataset with minimal effort. Primus is a part of the nnU-Net framework and is available as a new configuration in the nnU-Net.
 
-![Primus architecture](documentation/assets/transformed_primus.png)
+<img src="assets/transformed_primus.png" height="350px" />
+
 
 ## Primus Trainers
 
