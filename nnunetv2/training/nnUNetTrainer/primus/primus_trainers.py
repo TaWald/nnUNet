@@ -2,10 +2,9 @@ from abc import abstractmethod
 from typing import List, Tuple, Union
 import torch
 from torch import nn, autocast
-from nnunetv2.architectures.primus import LayerNormNd, Primus
+from dynamic_network_architectures.architectures.primus import Primus
 from nnunetv2.training.nnUNetTrainer.nnUNetTrainer import nnUNetTrainer
 from nnunetv2.training.nnUNetTrainer.variants.lr_schedule.nnUNetTrainer_warmup import nnUNetTrainer_warmup
-from nnunetv2.utilities.plans_handling.plans_handler import ConfigurationManager
 from torch.nn.parallel import DistributedDataParallel as DDP
 from nnunetv2.training.lr_scheduler.warmup import Lin_incr_LRScheduler, PolyLRScheduler_offset
 from nnunetv2.utilities.helpers import empty_cache, dummy_context
@@ -134,8 +133,6 @@ class nnUNet_Primus_S_Trainer(AbstractPrimus):
             12,
             6,
             self.configuration_manager.patch_size,
-            decoder_norm=LayerNormNd,
-            decoder_act=nn.GELU,
             drop_path_rate=0.2,
             scale_attn_inner=True,
             init_values=0.1,
@@ -163,8 +160,6 @@ class nnUNet_Primus_B_Trainer(AbstractPrimus):
             12,
             12,
             self.configuration_manager.patch_size,
-            decoder_norm=LayerNormNd,
-            decoder_act=nn.GELU,
             drop_path_rate=0.2,
             scale_attn_inner=True,
             init_values=0.1,
@@ -192,8 +187,6 @@ class nnUNet_Primus_M_Trainer(AbstractPrimus):
             16,
             12,
             self.configuration_manager.patch_size,
-            decoder_norm=LayerNormNd,
-            decoder_act=nn.GELU,
             drop_path_rate=0.2,
             scale_attn_inner=True,
             init_values=0.1,
@@ -264,8 +257,6 @@ class nnUNet_Primus_L_Trainer(AbstractPrimus):
             24,
             16,
             self.configuration_manager.patch_size,
-            decoder_norm=LayerNormNd,
-            decoder_act=nn.GELU,
             drop_path_rate=0.2,
             scale_attn_inner=True,
             init_values=0.1,
