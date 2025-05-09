@@ -315,7 +315,7 @@ class _Primus_M_96_BS1(nnUNet_Primus_M_Trainer):
         super().__init__(plans, configuration, fold, dataset_json, device)
 
 
-class _Primus_L_96_BS1(nnUNet_Primus_L_Trainer):
+class _Primus_L_48_BS1(nnUNet_Primus_L_Trainer):
     def __init__(
         self,
         plans: dict,
@@ -324,6 +324,6 @@ class _Primus_L_96_BS1(nnUNet_Primus_L_Trainer):
         dataset_json: dict,
         device: torch.device = torch.device("cuda"),
     ):
-        plans["configurations"][configuration]["patch_size"] = (96, 96, 96)  # As per repository
+        plans["configurations"][configuration]["patch_size"] = (48, 48, 48)  # As per repository
         plans["configurations"][configuration]["batch_size"] = 1
         super().__init__(plans, configuration, fold, dataset_json, device)
