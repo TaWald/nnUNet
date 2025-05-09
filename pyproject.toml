@@ -1,6 +1,6 @@
 [project]
 name = "nnunetv2"
-version = "2.6.0"
+version = "2.6.1"
 requires-python = ">=3.10"
 description = "nnU-Net is a framework for out-of-the box image segmentation."
 readme = "readme.md"
@@ -32,7 +32,7 @@ keywords = [
 dependencies = [
     "torch>=2.1.2",
     "acvl-utils>=0.2.3,<0.3",  # 0.3 may bring breaking changes. Careful!
-    "dynamic-network-architectures @ git+https://github.com/TaWald/dynamic-network-architectures.git@main",
+    "dynamic-network-architectures @ git+https://github.com/MIC-DKFZ/dynamic-network-architectures.git@main",  # 0.3.1 and lower are supported, 0.4 may have breaking changes. Let's be careful here
     "tqdm",
     "dicom2nifti",
     "scipy",
@@ -53,6 +53,7 @@ dependencies = [
     "batchgeneratorsv2>=0.2",
     "einops",
     "blosc2>=3.0.0b1",
+    "timm",
     "huggingface_hub"
 ]
 
