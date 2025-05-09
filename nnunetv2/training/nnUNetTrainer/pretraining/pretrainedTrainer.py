@@ -101,7 +101,9 @@ class PretrainedTrainer(nnUNetTrainer):
                     pt_key_to_lpe=self.adaptation_info["key_to_lpe"],
                 )
                 self.print_citations()
-            self.print_to_log_file("Loaded Network from {}".format(self.adaptation_info["checkpoint_path"]))
+                self.print_to_log_file("Loaded Network from {}".format(self.adaptation_info["checkpoint_path"]))
+            else:
+                self.print_to_log_file("You are using a Trainer for fine-tuning but without loading weigts")
             # compile network for free speedup
             if self._do_i_compile():
                 self.print_to_log_file("Using torch.compile...")

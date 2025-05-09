@@ -3,13 +3,69 @@ from typing import Union
 import torch
 import os
 import multiprocessing as mp
+import nnunetv2
+import torch.cuda
 
-from nnunetv2.run.run_training import find_free_network_port, get_trainer_from_args, maybe_load_checkpoint, run_ddp
+import torch.multiprocessing as mp
+from batchgenerators.utilities.file_and_folder_operations import join, isfile, load_json
+from nnunetv2.paths import nnUNet_preprocessed
+from nnunetv2.training.nnUNetTrainer.nnUNetTrainer import nnUNetTrainer
+from nnunetv2.utilities.dataset_name_id_conversion import maybe_convert_to_dataset_name
+from nnunetv2.utilities.find_class_by_name import recursive_find_python_class
+from nnunetv2.run.run_training import find_free_network_port, maybe_load_checkpoint, run_ddp
 from torch.backends import cudnn
 from batchgenerators.utilities.file_and_folder_operations import join
 
 from nnunetv2.training.nnUNetTrainer.pretraining.pretrainedTrainer import PretrainedTrainer
 
+def get_trainer_from_args(
+        dataset_name_or_id: Union[int, str],
+        configuration: str,
+        fold: int,
+        trainer_name: str = "nnUNetTrainer",
+        plans_identifier: str = "nnUNetPlans",
+        device: torch.device = torch.device("cuda"),
+        pretrained_from_scratch: bool = False,
+):
+    # load nnunet class and do sanity checks
+    nnunet_trainer = recursive_find_python_class(
+        join(nnunetv2.__path__[0], "training", "nnUNetTrainer"), trainer_name, "nnunetv2.training.nnUNetTrainer"
+    )
+    if nnunet_trainer is None:
+        raise RuntimeError(
+            f"Could not find requested nnunet trainer {trainer_name} in "
+            f"nnunetv2.training.nnUNetTrainer ("
+            f'{join(nnunetv2.__path__[0], "training", "nnUNetTrainer")}). If it is located somewhere '
+            f"else, please move it there."
+        )
+    assert issubclass(nnunet_trainer, nnUNetTrainer), (
+        "The requested nnunet trainer class must inherit from " "nnUNetTrainer"
+    )
+
+    # handle dataset input. If it's an ID we need to convert to int from string
+    if dataset_name_or_id.startswith("Dataset"):
+        pass
+    else:
+        try:
+            dataset_name_or_id = int(dataset_name_or_id)
+        except ValueError:
+            raise ValueError(
+                f"dataset_name_or_id must either be an integer or a valid dataset name with the pattern "
+                f"DatasetXXX_YYY where XXX are the three(!) task ID digits. Your "
+                f"input: {dataset_name_or_id}"
+            )
+
+    # initialize nnunet trainer
+    preprocessed_dataset_folder_base = join(nnUNet_preprocessed, maybe_convert_to_dataset_name(dataset_name_or_id))
+    plans_file = join(preprocessed_dataset_folder_base, plans_identifier + ".json")
+    plans = load_json(plans_file)
+    dataset_json = load_json(join(preprocessed_dataset_folder_base, "dataset.json"))
+    if pretrained_from_scratch:
+        plans["plans_name"] = plans["plans_name"] + "__from_scratch"
+    nnunet_trainer = nnunet_trainer(
+        plans=plans, configuration=configuration, fold=fold, dataset_json=dataset_json, use_pretrained_weights=not pretrained_from_scratch, device=device
+    )
+    return nnunet_trainer
 
 def train_pretrained(
     dataset_name_or_id: Union[str, int],
@@ -82,7 +138,7 @@ def train_pretrained(
             pretrained_from_scratch=from_scratch,  # <-- Creates new plan name if true. Allows easy comparison Pretrained vs Non-Pretrained
         )
 
-        nnunet_trainer.use_pretrained_weights = False if continue_training else True
+        nnunet_trainer.use_pretrained_weights = False if (continue_training or from_scratch) else True
 
         if disable_checkpointing:
             nnunet_trainer.disable_checkpointing = disable_checkpointing
