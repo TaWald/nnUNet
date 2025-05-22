@@ -37,6 +37,7 @@ def get_trainer_from_args(
     plans_identifier: str = "nnUNetPlans",
     device: torch.device = torch.device("cuda"),
     pretrained_from_scratch: bool = False,
+    overwrite_ckpt_path: str = None
 ):
     # load nnunet class and do sanity checks
     nnunet_trainer = recursive_find_python_class(
@@ -73,6 +74,8 @@ def get_trainer_from_args(
     dataset_json = load_json(join(preprocessed_dataset_folder_base, "dataset.json"))
     if pretrained_from_scratch:
         plans["plans_name"] = plans["plans_name"] + "__from_scratch"
+    if overwrite_ckpt_path is not None:
+        plans["pretrain_info"]["checkpoint_path"] = overwrite_ckpt_path
     nnunet_trainer = nnunet_trainer(
         plans=plans, configuration=configuration, fold=fold, dataset_json=dataset_json, device=device
     )
@@ -181,6 +184,7 @@ def run_training(
     disable_checkpointing: bool = False,
     val_with_best: bool = False,
     device: torch.device = torch.device("cuda"),
+    overwrite_ckpt_path = None
 ):
     if plans_identifier == "nnUNetPlans":
         print(
@@ -235,7 +239,7 @@ def run_training(
         )
     else:
         nnunet_trainer = get_trainer_from_args(
-            dataset_name_or_id, configuration, fold, trainer_class_name, plans_identifier, device=device
+            dataset_name_or_id, configuration, fold, trainer_class_name, plans_identifier, device=device, overwrite_ckpt_path=overwrite_ckpt_path,
         )
 
         if disable_checkpointing:
@@ -336,6 +340,13 @@ def run_training_entry():
         "(GPU), 'cpu' (CPU) and 'mps' (Apple M1/M2). Do NOT use this to set which GPU ID! "
         "Use CUDA_VISIBLE_DEVICES=X nnUNetv2_train [...] instead!",
     )
+    parser.add_argument(
+        "-overwrite_ckpt_path",
+        type=str,
+        default=None,
+        required=False,
+        help="Use this to overwrite the checkpoint",
+    )
     args = parser.parse_args()
 
     assert args.device in [
@@ -371,6 +382,7 @@ def run_training_entry():
         args.disable_checkpointing,
         args.val_best,
         device=device,
+        overwrite_ckpt_path=args.overwrite_ckpt_path
     )
 
 

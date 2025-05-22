@@ -15,6 +15,7 @@ from nnunetv2.imageio.simpleitk_reader_writer import SimpleITKIO
 # the Evaluator class of the previous nnU-Net was great and all but man was it overengineered. Keep it simple
 from nnunetv2.utilities.json_export import recursive_fix_for_json_export
 from nnunetv2.utilities.plans_handling.plans_handler import PlansManager
+from nnunetv2.evaluation.surface_metrics import NSD
 
 
 def label_or_region_to_key(label_or_region: Union[int, Tuple[int]]):
@@ -88,7 +89,7 @@ def compute_tp_fp_fn_tn(mask_ref: np.ndarray, mask_pred: np.ndarray, ignore_mask
 
 def compute_metrics(reference_file: str, prediction_file: str, image_reader_writer: BaseReaderWriter,
                     labels_or_regions: Union[List[int], List[Union[int, Tuple[int, ...]]]],
-                    ignore_label: int = None) -> dict:
+                    ignore_label: int = None, distance_threshold: int = 1) -> dict:
     # load images
     seg_ref, seg_ref_dict = image_reader_writer.read_seg(reference_file)
     seg_pred, seg_pred_dict = image_reader_writer.read_seg(prediction_file)
@@ -116,6 +117,10 @@ def compute_metrics(reference_file: str, prediction_file: str, image_reader_writ
         results['metrics'][r]['TN'] = tn
         results['metrics'][r]['n_pred'] = fp + tp
         results['metrics'][r]['n_ref'] = fn + tp
+        if tp + fp + fn == 0:
+            results['metrics'][r]['NSD'] = np.nan
+        else:
+            results['metrics'][r]['NSD'] = NSD(mask_ref, mask_pred, seg_ref_dict['spacing'], distance_threshold, ignore_mask)
     return results
 
 

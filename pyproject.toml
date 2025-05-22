@@ -54,7 +54,7 @@ dependencies = [
     "einops",
     "blosc2>=3.0.0b1",
     "timm",
-    "huggingface_hub"
+    "huggingface_hub",
 ]
 
 [project.urls]

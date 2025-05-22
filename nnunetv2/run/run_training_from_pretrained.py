@@ -168,7 +168,7 @@ def train_pretrained_entrypoint():
     parser.add_argument("dataset_name_or_id", type=str, help="Dataset name or ID to train with")
     parser.add_argument("configuration", type=str, help="Configuration that should be trained")
     parser.add_argument(
-        "fold", type=str, help="Fold of the 5-fold cross-validation.", choices=["0", "1", "2", "3", "4", "all"]
+        "fold", type=str, help="Fold of the 5-fold cross-validation.", choices=["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "all"]
     )
     parser.add_argument(
         "-tr",

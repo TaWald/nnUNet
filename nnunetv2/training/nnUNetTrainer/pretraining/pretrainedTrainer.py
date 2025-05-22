@@ -39,6 +39,7 @@ class PretrainedTrainer(nnUNetTrainer):
         self.use_pretrained_weights = use_pretrained_weights
         self.adaptation_info = self.plans_manager.plans["pretrain_info"]
         self.training_stage = None
+        self.pt_weight_in_ch_mismatch = False
 
     def print_citations(self):
         cits = self.adaptation_info.get("citations", [])
@@ -88,7 +89,7 @@ class PretrainedTrainer(nnUNetTrainer):
                 assert isfile(
                     self.adaptation_info["checkpoint_path"]
                 ), f"Pretrained weights path {self.adaptation_info['checkpoint_path']} does not exist!"
-                self.network = self.load_pretrained_weights(
+                self.network,  self.pt_weight_in_ch_mismatch = self.load_pretrained_weights(
                     self.network,
                     pretrained_weights_path=self.adaptation_info["checkpoint_path"],
                     pt_input_channels=self.adaptation_info["pt_num_in_channels"],
@@ -141,7 +142,7 @@ class PretrainedTrainer(nnUNetTrainer):
         pt_key_to_stem: str,
         pt_keys_to_in_proj: tuple[str, ...],
         pt_key_to_lpe: str,
-    ) -> nn.Module:
+    ) -> tuple[nn.Module, bool]:
         """
         Load pretrained weights into the network.
         Per default we only load the encoder and the stem weights. The stem weights are adapted to the number of input channels through repeats.
@@ -188,7 +189,7 @@ class PretrainedTrainer(nnUNetTrainer):
         stem_in_encoder = pt_key_to_stem in pre_train_statedict
 
         # Currently we don't have the logic for interpolating the positional embedding yet.
-
+        pt_weight_in_ch_mismatch = False
         need_to_ignore_lpe = False  # I.e. Learnable positional embedding
         key_to_lpe = getattr(network, "key_to_lpe", None)
 
@@ -213,6 +214,7 @@ class PretrainedTrainer(nnUNetTrainer):
         if stem_in_encoder:
             encoder_weights = {k: v for k, v in pre_train_statedict.items() if k.startswith(pt_key_to_encoder)}
             if downstream_input_channels > pt_input_channels:
+                pt_weight_in_ch_mismatch = True
                 k_proj = pt_keys_to_in_proj[0] + ".weight"  # Get the projection weights
                 vals = (
                     encoder_weights[k_proj].repeat(1, downstream_input_channels, 1, 1)
@@ -237,6 +239,7 @@ class PretrainedTrainer(nnUNetTrainer):
             encoder_weights = {k: v for k, v in pre_train_statedict.items() if k.startswith(pt_key_to_encoder)}
             stem_weights = {k: v for k, v in pre_train_statedict.items() if k.startswith(pt_key_to_stem)}
             if downstream_input_channels > pt_input_channels:
+                pt_weight_in_ch_mismatch = True
                 k_proj = pt_keys_to_in_proj[0] + ".weight"  # Get the projection weights
                 vals = (
                     stem_weights[k_proj].repeat(1, downstream_input_channels, 1, 1, 1)
@@ -276,7 +279,7 @@ class PretrainedTrainer(nnUNetTrainer):
             # ------------------------------- Load weights ------------------------------- #
 
         # Theoretically we don't need to return the network, but we do it anyway.
-        return network
+        return network, pt_weight_in_ch_mismatch
 
     @staticmethod
     def build_network_architecture(

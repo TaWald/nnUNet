@@ -1,5 +1,6 @@
 from nnunetv2.training.lr_scheduler.warmup import Lin_incr_LRScheduler, PolyLRScheduler_offset, \
     Lin_incr_offset_LRScheduler
+from dynamic_network_architectures.architectures.abstract_arch import AbstractDynamicNetworkArchitectures
 from nnunetv2.training.nnUNetTrainer.pretraining.pretrainedTrainer import PretrainedTrainer_Primus, PretrainedTrainer
 import torch
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -58,14 +59,24 @@ class PretrainedTrainer_sawtooth(PretrainedTrainer):
 
         if self.training_stage == stage:
             return self.optimizer, self.lr_scheduler
-
+        self.network: AbstractDynamicNetworkArchitectures
         if isinstance(self.network, DDP):
             params = self.network.module.parameters()
             heads = self.network.module.decoder.parameters()
+            in_proj = self.network.module.get_submodule(self.network.keys_to_in_proj[0]).parameters()
+            if self.pt_weight_in_ch_mismatch:
+                heads = list(heads) + list(in_proj)
+
+
+
         else:
             params = self.network.parameters()
             # print(self.network.state_dict().keys())
             heads = self.network.decoder.parameters()
+            in_proj = self.network.get_submodule(self.network.keys_to_in_proj[0]).parameters()
+            if self.pt_weight_in_ch_mismatch:
+                heads = list(heads) + list(in_proj)
+
 
         if stage == 'warmup_decoder':
             self.print_to_log_file("train decoder, lin warmup")
@@ -180,10 +191,17 @@ class PretrainedTrainer_Primus_sawtooth(PretrainedTrainer_Primus):
         if isinstance(self.network, DDP):
             params = self.network.module.parameters()
             heads = self.network.module.up_projection.parameters()
+            in_proj = self.network.module.get_submodule(self.network.keys_to_in_proj[0]).parameters()
+            if self.pt_weight_in_ch_mismatch:
+                heads = list(heads) + list(in_proj)
+
         else:
             params = self.network.parameters()
             # print(self.network.state_dict().keys())
             heads = self.network.up_projection.parameters()
+            in_proj = self.network.get_submodule(self.network.keys_to_in_proj[0]).parameters()
+            if self.pt_weight_in_ch_mismatch:
+                heads = list(heads) + list(in_proj)
 
         if stage == 'warmup_decoder':
             self.print_to_log_file("train decoder, lin warmup")
@@ -226,7 +244,6 @@ class PretrainedTrainer_Primus_sawtooth(PretrainedTrainer_Primus):
         empty_cache(self.device)
         return optimizer, lr_scheduler
 
-
 class PretrainedTrainer_Primus_sawtooth_150ep(PretrainedTrainer_Primus_sawtooth):
 
     def __init__(
@@ -241,8 +258,11 @@ class PretrainedTrainer_Primus_sawtooth_150ep(PretrainedTrainer_Primus_sawtooth)
 
         super().__init__(plans, configuration, fold, dataset_json, use_pretrained_weights, device)
         self.initial_lr = 1e-4
-        self.warmup_lr_factor = 0.01 #during decoder warmup lr must be smaller otherwise training collaps
+        self.warmup_lr_factor = 0.1 #during decoder warmup lr must be smaller otherwise training collaps
         self.weight_decay = 5e-2
         self.warmup_duration_decoder = 15
         self.warmup_duration_whole_net = 50  # lin increase whole network
         self.num_epochs = 150
+
+
+
