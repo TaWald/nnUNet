@@ -120,7 +120,7 @@ def compute_metrics(reference_file: str, prediction_file: str, image_reader_writ
         if tp + fp + fn == 0:
             results['metrics'][r]['NSD'] = np.nan
         else:
-            results['metrics'][r]['NSD'] = NSD(mask_ref, mask_pred, seg_ref_dict['spacing'], distance_threshold, ignore_mask)
+            results['metrics'][r]['NSD'] = NSD(mask_ref[0], mask_pred[0], seg_ref_dict['spacing'], distance_threshold, ignore_mask)
     return results
 
 
