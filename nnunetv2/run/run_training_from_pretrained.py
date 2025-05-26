@@ -26,6 +26,7 @@ def get_trainer_from_args(
         plans_identifier: str = "nnUNetPlans",
         device: torch.device = torch.device("cuda"),
         pretrained_from_scratch: bool = False,
+        overwrite_ckpt_path: str = None
 ):
     # load nnunet class and do sanity checks
     nnunet_trainer = recursive_find_python_class(
@@ -62,6 +63,8 @@ def get_trainer_from_args(
     dataset_json = load_json(join(preprocessed_dataset_folder_base, "dataset.json"))
     if pretrained_from_scratch:
         plans["plans_name"] = plans["plans_name"] + "__from_scratch"
+    if overwrite_ckpt_path is not None:
+        plans["pretrain_info"]["checkpoint_path"] = overwrite_ckpt_path
     nnunet_trainer = nnunet_trainer(
         plans=plans, configuration=configuration, fold=fold, dataset_json=dataset_json, use_pretrained_weights=not pretrained_from_scratch, device=device
     )
@@ -81,6 +84,7 @@ def train_pretrained(
     disable_checkpointing: bool = False,
     val_with_best: bool = False,
     device: torch.device = torch.device("cuda"),
+    overwrite_ckpt_path: str =None
 ):
     if isinstance(fold, str):
         if fold != "all":
@@ -136,7 +140,7 @@ def train_pretrained(
             plans_identifier,
             device=device,
             pretrained_from_scratch=from_scratch,  # <-- Creates new plan name if true. Allows easy comparison Pretrained vs Non-Pretrained
-        )
+            overwrite_ckpt_path=overwrite_ckpt_path)
 
         nnunet_trainer.use_pretrained_weights = False if (continue_training or from_scratch) else True
 
@@ -233,6 +237,13 @@ def train_pretrained_entrypoint():
         "(GPU), 'cpu' (CPU) and 'mps' (Apple M1/M2). Do NOT use this to set which GPU ID! "
         "Use CUDA_VISIBLE_DEVICES=X nnUNetv2_train [...] instead!",
     )
+    parser.add_argument(
+        "-overwrite_ckpt_path",
+        type=str,
+        default=None,
+        required=False,
+        help="Use this to overwrite the checkpoint",
+    )
     args = parser.parse_args()
 
     assert args.device in [
@@ -268,6 +279,7 @@ def train_pretrained_entrypoint():
         args.disable_checkpointing,
         args.val_best,
         device=device,
+        overwrite_ckpt_path=args.overwrite_ckpt_path
     )
 
 

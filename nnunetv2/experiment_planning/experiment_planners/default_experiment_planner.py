@@ -471,11 +471,11 @@ class ExperimentPlanner(object):
                 print(f'Attempting to find 3d_lowres config. '
                       f'\nCurrent spacing: {lowres_spacing}. '
                       f'\nCurrent patch size: {plan_3d_lowres["patch_size"]}. '
-                      f'\nCurrent median shape: {plan_3d_fullres["spacing"] / lowres_spacing * new_median_shape_transposed}')
+                      f'\nCurrent median shape: {np.array(plan_3d_fullres["spacing"]) / np.array(lowres_spacing) * new_median_shape_transposed}')
             if np.prod(new_median_shape_transposed, dtype=np.float64) / median_num_voxels < 2:
                 print(f'Dropping 3d_lowres config because the image size difference to 3d_fullres is too small. '
                       f'3d_fullres: {new_median_shape_transposed}, '
-                      f'3d_lowres: {[round(i) for i in plan_3d_fullres["spacing"] / lowres_spacing * new_median_shape_transposed]}')
+                      f'3d_lowres: {[round(i) for i in np.array(plan_3d_fullres["spacing"]) / np.array(lowres_spacing) * new_median_shape_transposed]}')
                 plan_3d_lowres = None
             if plan_3d_lowres is not None:
                 plan_3d_lowres['batch_dice'] = False
