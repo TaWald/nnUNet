@@ -37,6 +37,8 @@ class PretrainedTrainer(nnUNetTrainer):
         self.enable_deep_supervision = False
         self.warmup_duration_whole_net = 50  # lin increase whole network
         self.use_pretrained_weights = use_pretrained_weights
+        if not self.use_pretrained_weights:
+            self.initial_lr = 1e-2
         self.adaptation_info = self.plans_manager.plans["pretrain_info"]
         self.training_stage = None
         self.pt_weight_in_ch_mismatch = False
@@ -440,7 +442,6 @@ class PretrainedTrainer(nnUNetTrainer):
             if checkpoint['grad_scaler_state'] is not None:
                 self.grad_scaler.load_state_dict(checkpoint['grad_scaler_state'])
 
-
 class PretrainedTrainer_Primus(PretrainedTrainer):
 
     def __init__(
@@ -454,11 +455,13 @@ class PretrainedTrainer_Primus(PretrainedTrainer):
     ):
         super().__init__(plans, configuration, fold, dataset_json, use_pretrained_weights, device)
         # Can be overriden to train same architecture from scratch.
-        self.initial_lr = 3e-4
+        self.initial_lr = 1e-4
         self.weight_decay = 5e-2
         self.enable_deep_supervision = False
         self.warmup_duration_whole_net = 50  # lin increase whole network
         self.use_pretrained_weights = use_pretrained_weights
+        if not self.use_pretrained_weights:
+            self.initial_lr = 3e-4
         self.adaptation_info = self.plans_manager.plans["pretrain_info"]
 
     def configure_optimizers(self, stage: str = "warmup_all"):
@@ -554,7 +557,6 @@ class PretrainedTrainer_150ep(PretrainedTrainer):
     ):
         super().__init__(plans, configuration, fold, dataset_json, use_pretrained_weights, device)
         # Can be overriden to train same architecture from scratch.
-        self.initial_lr = 1e-3
         self.warmup_duration_whole_net = 15 # lin increase whole network
         self.num_epochs = 150
 
@@ -571,7 +573,6 @@ class PretrainedTrainer_Primus_150ep(PretrainedTrainer_Primus):
     ):
         super().__init__(plans, configuration, fold, dataset_json, use_pretrained_weights,device)
         # Can be overriden to train same architecture from scratch.
-        self.initial_lr = 1e-4
         self.warmup_duration_whole_net = 15  # lin increase whole network
         self.num_epochs = 150 # lin increase whole network
 
