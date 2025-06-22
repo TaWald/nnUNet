@@ -60,6 +60,19 @@ class PretrainedTrainer(nnUNetTrainer):
             self.print_to_log_file(final_string, add_timestamp=False)
         return
 
+    def maybe_rewire_network(self, network: AbstractDynamicNetworkArchitectures) -> nn.Module:
+        """
+        Intended to allow modifying the input-ouput behavior of the network.
+        I.e. to insert linear probes at the middle stages of a network.
+
+        Args:
+            network (AbstractDynamicNetworkArchitectures): The module with loaded weights, to be rewired.
+
+        Returns:
+            nn.Module: The (potentially) rewired network.
+        """
+        return network
+
     def initialize(self):
         if not self.was_initialized:
             ## DDP batch size and oversampling can differ between workers and needs adaptation
@@ -108,6 +121,7 @@ class PretrainedTrainer(nnUNetTrainer):
             else:
                 self.print_to_log_file("You are using a Trainer for fine-tuning but without loading weigts")
             # compile network for free speedup
+            self.network = self.maybe_rewire_network(self.network)
             if self._do_i_compile():
                 self.print_to_log_file("Using torch.compile...")
                 self.network = torch.compile(self.network)
