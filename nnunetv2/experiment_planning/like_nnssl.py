@@ -7,6 +7,7 @@ import numpy as np
 # from numpy.core.multiarray
 
 from nnunetv2.preprocessing.preprocessors.default_preprocessor import DefaultPreprocessor
+from nnunetv2.utilities.path_handling import maybe_absolute_to_relative_path, maybe_resolve_relative_path
 from nnunetv2.utilities.plans_handling.plans_handler import ConfigurationManager, PlansManager
 from nnunetv2.paths import nnUNet_preprocessed
 from nnunetv2.utilities.dataset_name_id_conversion import convert_id_to_dataset_name
@@ -92,7 +93,7 @@ def preprocess_like_nnssl(
     """
     dataset_name = convert_id_to_dataset_name(dataset_id)
     print(f"Preprocessing dataset {dataset_name}")
-    # Check if nnUNetPLans exists or ResEncL/M/S or whatever
+    # Check if nnUNetPLans exists or ResEncS/M/L/XL or whatever
     potential_plans = ["nnUNetPlans.json"] + [f"nnUNetResEncUNet{k}Plans.json" for k in "_M_L_XL".split("_")]
     existing_plans = [p for p in potential_plans if isfile(join(nnUNet_preprocessed, dataset_name, p))]
     assert len(existing_plans) > 0, (
@@ -117,8 +118,9 @@ def preprocess_like_nnssl(
     # -------------------------------- Adapt plan -------------------------------- #
     adapted_plans = deepcopy(downstream_plans_manager)
     config = list(adaptation_plan["pretrain_plan"]["configurations"].keys())[0]
+    rel_pt_ckpt = maybe_absolute_to_relative_path(pt_ckpt)
     pretrain_info = {
-        "checkpoint_path": pt_ckpt,
+        "checkpoint_path": rel_pt_ckpt,
         "checkpoint_name": pretrain_name,
         "key_to_encoder": adaptation_plan["key_to_encoder"],
         "key_to_stem": adaptation_plan["key_to_stem"],
@@ -209,9 +211,6 @@ def maybe_download_pretrained_weights(pretrained_checkpoint_path: str):
         # Replace the local path with the downloaded checkpoint path
         pretrained_checkpoint_path = checkpoint_path
 
-    # Verify the local path exists
-    if not Path(pretrained_checkpoint_path).is_file():
-        raise FileNotFoundError(f"The pretrained checkpoint path {pretrained_checkpoint_path} does not exist.")
     return pretrained_checkpoint_path
 
 
@@ -290,6 +289,9 @@ def preprocess_like_nnssl_entrypoint():
     verbose: bool = args.verbose
 
     pretrained_checkpoint_path: str = maybe_download_pretrained_weights(pretrained_checkpoint_path)
+    pretrained_checkpoint_path: str = maybe_resolve_relative_path(pretrained_checkpoint_path)
+    if not Path(pretrained_checkpoint_path).is_file():
+        raise FileNotFoundError(f"The pretrained checkpoint path {pretrained_checkpoint_path} does not exist.")
 
     preprocess_like_nnssl(
         dataset_id=dataset_ids,
