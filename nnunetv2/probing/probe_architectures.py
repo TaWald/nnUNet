@@ -37,8 +37,8 @@ class ProbeArchitecture(nn.Module):
         """
         super().__init__()
         self.network_to_probe = network_to_probe
-        for p in self.network_to_probe.parameters():
-            p.requires_grad = False
+        # for p in self.network_to_probe.parameters():
+        #     p.requires_grad = False
         self.probe_position = probe_position
         self.probe_module = probe_module
         self.hook_handles = []
@@ -63,6 +63,7 @@ class ProbeArchitecture(nn.Module):
         """
         for handle in self.hook_handles:
             handle.remove()
+        self.probes_are_attached = False
         self.hook_handles = []
         self.hook_outputs = []
 
@@ -70,7 +71,6 @@ class ProbeArchitecture(nn.Module):
         super().train(mode)  # Recursibely set s
         self.network_to_probe.train(False)  # This module should never be changed!
         return self
-
 
     def forward(self, x: torch.Tensor) -> list[torch.Tensor]:
         """
@@ -82,6 +82,7 @@ class ProbeArchitecture(nn.Module):
             list[torch.Tensor]: List of outputs from the probes.
         """
         if not self.probes_are_attached:
+            self.probes_are_attached = True
             self.attach_probes()
         with torch.no_grad():
             self.network_to_probe(x)  # We forward the module to trigger the hooks, but don't use the output.
