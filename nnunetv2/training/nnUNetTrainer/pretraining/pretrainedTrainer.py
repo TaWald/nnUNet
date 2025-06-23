@@ -16,6 +16,7 @@ from nnunetv2.training.nnUNetTrainer.nnUNetTrainer import nnUNetTrainer
 from nnunetv2.utilities.helpers import empty_cache, dummy_context
 from nnunetv2.utilities.get_network_from_plans import get_network_from_plans
 from nnunetv2.utilities.label_handling.label_handling import determine_num_input_channels
+from nnunetv2.utilities.path_handling import maybe_resolve_relative_path
 
 warmup_stages = Literal["warmup_all", "warmup_decoder", "train_all", "train_decoder"]
 
@@ -101,6 +102,9 @@ class PretrainedTrainer(nnUNetTrainer):
                 assert (
                     "checkpoint_path" in self.adaptation_info
                 ), "`checkpoint_path` not found in plans! Can't load weights"
+                self.adaptation_info["checkpoint_path"] = maybe_resolve_relative_path(
+                    self.adaptation_info["checkpoint_path"]
+                )
                 assert isfile(
                     self.adaptation_info["checkpoint_path"]
                 ), f"Pretrained weights path {self.adaptation_info['checkpoint_path']} does not exist!"
