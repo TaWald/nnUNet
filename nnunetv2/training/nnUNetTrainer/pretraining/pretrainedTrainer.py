@@ -95,7 +95,7 @@ class PretrainedTrainer(nnUNetTrainer):
                 num_input_channels=self.num_input_channels,
                 num_output_channels=self.label_manager.num_segmentation_heads,
                 enable_deep_supervision=False,
-            ).to(self.device)
+            )
 
             # Load pretrained weights
             if self.use_pretrained_weights:
@@ -108,7 +108,7 @@ class PretrainedTrainer(nnUNetTrainer):
                 assert isfile(
                     self.adaptation_info["checkpoint_path"]
                 ), f"Pretrained weights path {self.adaptation_info['checkpoint_path']} does not exist!"
-                self.network,  self.pt_weight_in_ch_mismatch = self.load_pretrained_weights(
+                self.network, self.pt_weight_in_ch_mismatch = self.load_pretrained_weights(
                     self.network,
                     pretrained_weights_path=self.adaptation_info["checkpoint_path"],
                     pt_input_channels=self.adaptation_info["pt_num_in_channels"],
@@ -125,7 +125,7 @@ class PretrainedTrainer(nnUNetTrainer):
             else:
                 self.print_to_log_file("You are using a Trainer for fine-tuning but without loading weigts")
             # compile network for free speedup
-            self.network = self.maybe_rewire_network(self.network)
+            self.network = self.maybe_rewire_network(self.network).to(self.device)
             if self._do_i_compile():
                 self.print_to_log_file("Using torch.compile...")
                 self.network = torch.compile(self.network)
@@ -273,9 +273,9 @@ class PretrainedTrainer(nnUNetTrainer):
             # --------------------------------- Adapt LPE -------------------------------- #
             if need_to_ignore_lpe:
                 if lpe_in_stem:  # Since stem not in encoder we need to take care of lpe in it here
-                    new_stem_weights[strip_dot_prefix(key_to_lpe.replace(key_to_stem, ""))] = (
-                        random_init_statedict[key_to_lpe]
-                    )
+                    new_stem_weights[strip_dot_prefix(key_to_lpe.replace(key_to_stem, ""))] = random_init_statedict[
+                        key_to_lpe
+                    ]
                 elif lpe_in_encoder:
                     new_encoder_weights[strip_dot_prefix(key_to_lpe.replace(key_to_encoder, ""))] = (
                         random_init_statedict[key_to_lpe]
@@ -409,9 +409,9 @@ class PretrainedTrainer(nnUNetTrainer):
 
     def get_stage(self):
         if self.current_epoch < self.warmup_duration_whole_net:
-            stage = 'warmup_all'
+            stage = "warmup_all"
         else:
-            stage = 'train'
+            stage = "train"
         return stage
 
     def load_checkpoint(self, filename_or_checkpoint: Union[dict, str]) -> None:
@@ -423,23 +423,27 @@ class PretrainedTrainer(nnUNetTrainer):
             self.initialize()
 
         if isinstance(filename_or_checkpoint, str):
-            checkpoint = torch.load(filename_or_checkpoint, map_location=self.device, weights_only=False) # will be changed soon
+            checkpoint = torch.load(
+                filename_or_checkpoint, map_location=self.device, weights_only=False
+            )  # will be changed soon
         # if state dict comes from nn.DataParallel but we use non-parallel model here then the state dict keys do not
         # match. Use heuristic to make it match
         new_state_dict = {}
-        for k, value in checkpoint['network_weights'].items():
+        for k, value in checkpoint["network_weights"].items():
             key = k
-            if key not in self.network.state_dict().keys() and key.startswith('module.'):
+            if key not in self.network.state_dict().keys() and key.startswith("module."):
                 key = key[7:]
             new_state_dict[key] = value
 
-        self.my_init_kwargs = checkpoint['init_args']
-        self.current_epoch = checkpoint['current_epoch']
-        self.logger.load_checkpoint(checkpoint['logging'])
-        self._best_ema = checkpoint['_best_ema']
-        self.inference_allowed_mirroring_axes = checkpoint[
-            'inference_allowed_mirroring_axes'] if 'inference_allowed_mirroring_axes' in checkpoint.keys() \
+        self.my_init_kwargs = checkpoint["init_args"]
+        self.current_epoch = checkpoint["current_epoch"]
+        self.logger.load_checkpoint(checkpoint["logging"])
+        self._best_ema = checkpoint["_best_ema"]
+        self.inference_allowed_mirroring_axes = (
+            checkpoint["inference_allowed_mirroring_axes"]
+            if "inference_allowed_mirroring_axes" in checkpoint.keys()
             else self.inference_allowed_mirroring_axes
+        )
 
         # messing with state dict naming schemes. Facepalm.
         if self.is_ddp:
@@ -455,10 +459,11 @@ class PretrainedTrainer(nnUNetTrainer):
 
         self.optimizer, self.lr_scheduler = self.configure_optimizers(self.get_stage())
 
-        self.optimizer.load_state_dict(checkpoint['optimizer_state'])
+        self.optimizer.load_state_dict(checkpoint["optimizer_state"])
         if self.grad_scaler is not None:
-            if checkpoint['grad_scaler_state'] is not None:
-                self.grad_scaler.load_state_dict(checkpoint['grad_scaler_state'])
+            if checkpoint["grad_scaler_state"] is not None:
+                self.grad_scaler.load_state_dict(checkpoint["grad_scaler_state"])
+
 
 class PretrainedTrainer_Primus(PretrainedTrainer):
 
@@ -562,37 +567,36 @@ class PretrainedTrainer_Primus(PretrainedTrainer):
         """
         pass
 
+
 class PretrainedTrainer_150ep(PretrainedTrainer):
 
     def __init__(
-            self,
-            plans: dict,
-            configuration: str,
-            fold: int,
-            dataset_json: dict,
-            use_pretrained_weights: bool = True,
-            device: torch.device = torch.device("cuda"),
+        self,
+        plans: dict,
+        configuration: str,
+        fold: int,
+        dataset_json: dict,
+        use_pretrained_weights: bool = True,
+        device: torch.device = torch.device("cuda"),
     ):
         super().__init__(plans, configuration, fold, dataset_json, use_pretrained_weights, device)
         # Can be overriden to train same architecture from scratch.
-        self.warmup_duration_whole_net = 15 # lin increase whole network
+        self.warmup_duration_whole_net = 15  # lin increase whole network
         self.num_epochs = 150
+
 
 class PretrainedTrainer_Primus_150ep(PretrainedTrainer_Primus):
 
     def __init__(
-            self,
-            plans: dict,
-            configuration: str,
-            fold: int,
-            dataset_json: dict,
-            use_pretrained_weights: bool = True,
-            device: torch.device = torch.device("cuda"),
+        self,
+        plans: dict,
+        configuration: str,
+        fold: int,
+        dataset_json: dict,
+        use_pretrained_weights: bool = True,
+        device: torch.device = torch.device("cuda"),
     ):
-        super().__init__(plans, configuration, fold, dataset_json, use_pretrained_weights,device)
+        super().__init__(plans, configuration, fold, dataset_json, use_pretrained_weights, device)
         # Can be overriden to train same architecture from scratch.
         self.warmup_duration_whole_net = 15  # lin increase whole network
-        self.num_epochs = 150 # lin increase whole network
-
-
-
+        self.num_epochs = 150  # lin increase whole network
