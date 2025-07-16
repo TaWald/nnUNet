@@ -122,6 +122,11 @@ def load_pretrained_weights(
     pt_weight_in_ch_mismatch = False
     need_to_ignore_lpe = False  # I.e. Learnable positional embedding
     key_to_lpe = getattr(network, "key_to_lpe", None)
+    # Check if the current module even uses a learnable positional embedding. If not ignore LPE logic.
+    try:
+        network.get_submodule(key_to_lpe)
+    except AttributeError:
+        key_to_lpe = None
 
     if key_to_lpe is not None:
         # Add interpolation logic for positional embeddings later
@@ -222,5 +227,3 @@ if __name__ == "__main__":
     network = build_network_architecture(args.arch,None, None, [160,160,160], 1, 1)
     load_pretrained_weights(network,args.ckp,1,[160,160,160])
     print('Pretrained weights of the encoder loaded successfully')
-
-

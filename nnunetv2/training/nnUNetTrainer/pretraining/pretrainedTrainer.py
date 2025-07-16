@@ -194,6 +194,11 @@ class PretrainedTrainer(nnUNetTrainer):
         pt_weight_in_ch_mismatch = False
         need_to_ignore_lpe = False  # I.e. Learnable positional embedding
         key_to_lpe = getattr(network, "key_to_lpe", None)
+        # Check if the current module even uses a learnable positional embedding. If not ignore LPE logic.
+        try:
+            network.get_submodule(key_to_lpe)
+        except AttributeError:
+            key_to_lpe = None
 
         if key_to_lpe is not None:
             # Add interpolation logic for positional embeddings later
@@ -575,6 +580,3 @@ class PretrainedTrainer_Primus_150ep(PretrainedTrainer_Primus):
         # Can be overriden to train same architecture from scratch.
         self.warmup_duration_whole_net = 15  # lin increase whole network
         self.num_epochs = 150 # lin increase whole network
-
-
-
