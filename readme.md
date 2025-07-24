@@ -66,7 +66,7 @@ Once this concluded you should see a new dataset folder in your `nnUNet_preproce
 
 Now you can start fine-tuning your pre-trained model using the `nnUNetv2_train_pretrained` command:
 ```bash
-nnUNetv2_train_pretrained -d <dataset_identifier> -c "3d_fullres" -f <Pick_fold_0-4> -p <NameOfYourNewlyCreatedPlans>
+nnUNetv2_train_pretrained <dataset_identifier> "3d_fullres" <Pick_fold_0-4> -p <NameOfYourNewlyCreatedPlans>
 ```
 This should start the training of your model with the default `PretrainedTrainer` which follows a simple warm-up schedule.
 
