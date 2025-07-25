@@ -275,9 +275,8 @@ class ExperimentPlanner(object):
                                                              999999)
         num_stages = len(pool_op_kernel_sizes)
 
-        spacing = list(spacing)
-        if len(spacing) == 2:
-            spacing = [None] + spacing
+        if spacing.size == 2:
+            spacing = np.insert(spacing, 0, None)
 
         norm = get_matching_instancenorm(unet_conv_op)
         architecture_kwargs = {
