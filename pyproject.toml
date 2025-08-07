@@ -53,7 +53,7 @@ dependencies = [
     "batchgeneratorsv2>=0.2",
     "einops",
     "blosc2>=3.0.0b1",
-    "timm",
+    "timm<=1.0.15",
     "huggingface_hub",
 ]
 
