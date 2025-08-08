@@ -455,7 +455,10 @@ class ExperimentPlanner(object):
                 # is/are similar (factor 2) to the other ax(i/e)s.
                 max_spacing = max(lowres_spacing)
                 if np.any((max_spacing / lowres_spacing) > 2):
-                    lowres_spacing[(max_spacing / lowres_spacing) > 2] *= spacing_increase_factor
+                    lowres_spacing = np.array(lowres_spacing)  # Ensure it's a NumPy array
+                    max_spacing = np.max(lowres_spacing)
+                    mask = (max_spacing / lowres_spacing) > 2
+                    lowres_spacing[mask] *= spacing_increase_factor
                 else:
                     lowres_spacing *= spacing_increase_factor
                 median_num_voxels = np.prod(plan_3d_fullres['spacing'] / lowres_spacing * new_median_shape_transposed,
