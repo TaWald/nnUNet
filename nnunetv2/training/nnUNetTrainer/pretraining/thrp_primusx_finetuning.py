@@ -98,6 +98,7 @@ class PretrainedTrainer_Primusx(PretrainedTrainer_Primus):
             self.optimizer, self.lr_scheduler = self.configure_optimizers()
             # if ddp, wrap in DDP wrapper
             if self.is_ddp:
+                self.network = self.network.to(self.device)
                 self.network = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.network)
                 self.network = DDP(self.network, device_ids=[self.local_rank])
 

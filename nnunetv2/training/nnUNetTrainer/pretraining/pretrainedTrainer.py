@@ -4,6 +4,7 @@ import torch
 from batchgenerators.utilities.file_and_folder_operations import isfile
 from dynamic_network_architectures.architectures.abstract_arch import AbstractDynamicNetworkArchitectures
 from torch._dynamo import OptimizedModule
+from torch.xpu import device
 
 from nnunetv2.training.loss.dice import get_tp_fp_fn_tn
 from nnunetv2.training.lr_scheduler.warmup import Lin_incr_LRScheduler, PolyLRScheduler_offset
@@ -115,6 +116,7 @@ class PretrainedTrainer(nnUNetTrainer):
             self.optimizer, self.lr_scheduler = self.configure_optimizers()
             # if ddp, wrap in DDP wrapper
             if self.is_ddp:
+                self.network = self.network.to(self.device)
                 self.network = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.network)
                 self.network = DDP(self.network, device_ids=[self.local_rank])
 
