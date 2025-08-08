@@ -58,7 +58,7 @@ class PretrainedTrainer_Primusx(PretrainedTrainer_Primus):
 
             self.network = self.build_network_architecture(
                 architecture_class_name=self.configuration_manager.network_arch_class_name,
-                arch_init_kwargs=self.adaptation_info['architecture_plans']['arch_kwargs'],
+                arch_init_kwargs=self.configuration_manager.network_arch_init_kwargs,
                 arch_init_kwargs_req_import=self.configuration_manager.network_arch_init_kwargs_req_import,
                 input_patch_size=self.configuration_manager.patch_size,  # Set in plan to pt_recommended_patchsize
                 num_input_channels=self.num_input_channels,
@@ -140,4 +140,22 @@ class PretrainedTrainer_Primusx(PretrainedTrainer_Primus):
             init_values=0.1,
         )
         return model
+
+
+
+class PretrainedTrainer_Primusx_150ep(PretrainedTrainer_Primusx):
+
+    def __init__(
+            self,
+            plans: dict,
+            configuration: str,
+            fold: int,
+            dataset_json: dict,
+            use_pretrained_weights: bool = True,
+            device: torch.device = torch.device("cuda"),
+    ):
+        super().__init__(plans, configuration, fold, dataset_json, use_pretrained_weights, device)
+        # Can be overriden to train same architecture from scratch.
+        self.warmup_duration_whole_net = 15  # lin increase whole network
+        self.num_epochs = 150 # lin increase whole network
 
