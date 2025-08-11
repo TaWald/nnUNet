@@ -452,6 +452,7 @@ class PretrainedTrainer(nnUNetTrainer):
         if self.grad_scaler is not None:
             if checkpoint['grad_scaler_state'] is not None:
                 self.grad_scaler.load_state_dict(checkpoint['grad_scaler_state'])
+        del checkpoint
 
 class PretrainedTrainer_Primus(PretrainedTrainer):
 
