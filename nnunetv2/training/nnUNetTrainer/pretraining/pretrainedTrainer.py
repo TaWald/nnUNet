@@ -280,6 +280,7 @@ class PretrainedTrainer(nnUNetTrainer):
             stem_module = network.get_submodule(key_to_stem)
             stem_module.load_state_dict(new_stem_weights)
 
+
         if not need_to_adapt_lpe and key_to_lpe is not None:
             # Load the positional embedding weights
             lpe_weights = {k: v for k, v in pre_train_statedict.items() if k.startswith(pt_key_to_lpe)}
@@ -290,6 +291,7 @@ class PretrainedTrainer(nnUNetTrainer):
             # ------------------------------- Load weights ------------------------------- #
 
         # Theoretically we don't need to return the network, but we do it anyway.
+        del pre_train_statedict
         return network, pt_weight_in_ch_mismatch
 
     @staticmethod
