@@ -291,8 +291,8 @@ class PretrainedTrainer(nnUNetTrainer):
             # ------------------------------- Load weights ------------------------------- #
 
         # Theoretically we don't need to return the network, but we do it anyway.
-        del pre_train_statedict
-        return network, pt_weight_in_ch_mismatch
+        del pre_train_statedict, encoder_weights
+        return network, pt_weight_in_ch_mismatch, new_encoder_weights, new_stem_weights, stem_weights
 
     @staticmethod
     def build_network_architecture(
