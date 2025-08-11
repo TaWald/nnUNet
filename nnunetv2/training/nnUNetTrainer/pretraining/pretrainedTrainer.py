@@ -1,6 +1,7 @@
 from copy import deepcopy
 from typing import Literal, Tuple, Union, List
 import torch
+import gc
 from batchgenerators.utilities.file_and_folder_operations import isfile
 from dynamic_network_architectures.architectures.abstract_arch import AbstractDynamicNetworkArchitectures
 from torch._dynamo import OptimizedModule
@@ -292,6 +293,8 @@ class PretrainedTrainer(nnUNetTrainer):
 
         # Theoretically we don't need to return the network, but we do it anyway.
         del pre_train_statedict, encoder_weights,  new_encoder_weights, new_stem_weights, stem_weights
+        gc.collect()
+        torch.cuda.empty_cache()
         return network, pt_weight_in_ch_mismatch
 
     @staticmethod
@@ -416,7 +419,7 @@ class PretrainedTrainer(nnUNetTrainer):
             self.initialize()
 
         if isinstance(filename_or_checkpoint, str):
-            checkpoint = torch.load(filename_or_checkpoint, map_location=self.device, weights_only=False) # will be changed soon
+            checkpoint = torch.load(filename_or_checkpoint, map_location='cpu', weights_only=False) # will be changed soon
         # if state dict comes from nn.DataParallel but we use non-parallel model here then the state dict keys do not
         # match. Use heuristic to make it match
         new_state_dict = {}
@@ -453,6 +456,8 @@ class PretrainedTrainer(nnUNetTrainer):
             if checkpoint['grad_scaler_state'] is not None:
                 self.grad_scaler.load_state_dict(checkpoint['grad_scaler_state'])
         del checkpoint
+        gc.collect()
+        torch.cuda.empty_cache()
 
 class PretrainedTrainer_Primus(PretrainedTrainer):
 
