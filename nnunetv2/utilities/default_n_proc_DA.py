@@ -32,9 +32,9 @@ def get_allowed_n_proc_DA():
         elif hostname.startswith('e230-dgx2'):
             use_this = 6
         elif hostname.startswith('e230-dgxa100-'):
-            use_this = 28
+            use_this = 16
         elif hostname.startswith('lsf22-gpu'):
-            use_this = 28
+            use_this = 16
         elif hostname.startswith('hdf19-gpu') or hostname.startswith('e071-gpu'):
             use_this = 12
         else:
