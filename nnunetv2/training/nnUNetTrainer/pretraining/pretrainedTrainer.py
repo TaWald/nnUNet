@@ -98,7 +98,7 @@ class PretrainedTrainer(nnUNetTrainer):
                     pt_input_channels=self.adaptation_info["pt_num_in_channels"],
                     downstream_input_channels=self.num_input_channels,
                     pt_input_patchsize=self.adaptation_info["pt_used_patchsize"],
-                    downstream_input_patchsize=self.adaptation_info["pt_recommended_downstream_patchsize"],
+                    downstream_input_patchsize=self.configuration_manager.patch_size,
                     pt_key_to_encoder=self.adaptation_info["key_to_encoder"],
                     pt_key_to_stem=self.adaptation_info["key_to_stem"],
                     pt_keys_to_in_proj=tuple(self.adaptation_info["keys_to_in_proj"]),
@@ -198,6 +198,7 @@ class PretrainedTrainer(nnUNetTrainer):
         key_to_lpe = getattr(network, "key_to_lpe", None)
 
         if key_to_lpe is not None:
+            print('here')
             # Add interpolation logic for positional embeddings later
             lpe_in_encoder = key_to_lpe.startswith(key_to_encoder)
             lpe_in_stem = key_to_lpe.startswith(key_to_stem)
@@ -414,7 +415,7 @@ class PretrainedTrainer(nnUNetTrainer):
         """
         if not self.was_initialized:
             self.initialize()
-
+        self.network.cpu()#stupid but avoids vram peak
         if isinstance(filename_or_checkpoint, str):
             checkpoint = torch.load(filename_or_checkpoint, map_location='cpu', weights_only=False) # will be changed soon
         # if state dict comes from nn.DataParallel but we use non-parallel model here then the state dict keys do not
@@ -448,10 +449,26 @@ class PretrainedTrainer(nnUNetTrainer):
 
         self.optimizer, self.lr_scheduler = self.configure_optimizers(self.get_stage())
 
+        # NEW: ensure optimizer tensors are on CPU before loading
+        opt_state = checkpoint['optimizer_state']
+        for st in opt_state.get('state', {}).values():
+            for k, v in list(st.items()):
+                if torch.is_tensor(v):
+                    st[k] = v.cpu()
+
         self.optimizer.load_state_dict(checkpoint['optimizer_state'])
         if self.grad_scaler is not None:
             if checkpoint['grad_scaler_state'] is not None:
                 self.grad_scaler.load_state_dict(checkpoint['grad_scaler_state'])
+
+        # NEW: move model to GPU after loading everything on CPU
+        self.network.to(self.device)
+
+        # NEW: move optimizer state tensors to the same device
+        for st in self.optimizer.state.values():
+            for k, v in list(st.items()):
+                if torch.is_tensor(v):
+                    st[k] = v.to(self.device, non_blocking=True)
         del checkpoint
 
 class PretrainedTrainer_Primus(PretrainedTrainer):

@@ -80,7 +80,7 @@ class PretrainedTrainer_Primusx(PretrainedTrainer_Primus):
                     pt_input_channels=self.adaptation_info["pt_num_in_channels"],
                     downstream_input_channels=self.num_input_channels,
                     pt_input_patchsize=self.adaptation_info["pt_used_patchsize"],
-                    downstream_input_patchsize=self.adaptation_info["pt_recommended_downstream_patchsize"],
+                    downstream_input_patchsize=self.configuration_manager.patch_size,
                     pt_key_to_encoder=self.adaptation_info["key_to_encoder"],
                     pt_key_to_stem=self.adaptation_info["key_to_stem"],
                     pt_keys_to_in_proj=tuple(self.adaptation_info["keys_to_in_proj"]),
@@ -171,7 +171,7 @@ class PretrainedTrainer_Primusx_150ep_small_debug(PretrainedTrainer_Primusx):
             use_pretrained_weights: bool = True,
             device: torch.device = torch.device("cuda"),
     ):
-        plans["configurations"][configuration]["patch_size"] = (48, 48, 48)  # As per repository
+        plans["configurations"][configuration]["patch_size"] = (48, 48, 48)
         plans["configurations"][configuration]["batch_size"] = 1
         super().__init__(plans, configuration, fold, dataset_json, use_pretrained_weights, device)
         # Can be overriden to train same architecture from scratch.
