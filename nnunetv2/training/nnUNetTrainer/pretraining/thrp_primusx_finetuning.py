@@ -178,3 +178,11 @@ class PretrainedTrainer_Primusx_150ep_small_debug(PretrainedTrainer_Primusx):
         self.warmup_duration_whole_net = 15  # lin increase whole network
         self.num_epochs = 150 # lin increase whole network
 
+
+class PretrainedTrainer_Primusx_150ep_nomirroring(PretrainedTrainer_Primusx_150ep):
+    def configure_rotation_dummyDA_mirroring_and_inital_patch_size(self):
+        rotation_for_DA, do_dummy_2d_data_aug, initial_patch_size, mirror_axes = \
+            super().configure_rotation_dummyDA_mirroring_and_inital_patch_size()
+        mirror_axes = None
+        self.inference_allowed_mirroring_axes = None
+        return rotation_for_DA, do_dummy_2d_data_aug, initial_patch_size, mirror_axes
