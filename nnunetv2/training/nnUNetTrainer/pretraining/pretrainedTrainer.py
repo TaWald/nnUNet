@@ -187,7 +187,7 @@ class PretrainedTrainer(nnUNetTrainer):
         key_to_stem = network.key_to_stem  # Key to the stem (beginning) in the current network
 
         random_init_statedict = network.state_dict()
-        pre_train_statedict: dict[str, torch.Tensor] = torch.load(pretrained_weights_path, weights_only=True, devi)[
+        pre_train_statedict: dict[str, torch.Tensor] = torch.load(pretrained_weights_path, weights_only=True)[
             "network_weights"  # Get pre-trained state dict
         ]
         stem_in_encoder = pt_key_to_stem in pre_train_statedict
