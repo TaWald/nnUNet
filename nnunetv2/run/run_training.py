@@ -142,12 +142,13 @@ def run_ddp(
     val_with_best,
     world_size,
     pretrained_from_scratch=False,
+    overwrite_ckpt_path=None,
 ):
     setup_ddp(rank, world_size)
     torch.cuda.set_device(torch.device("cuda", dist.get_rank()))
 
     nnunet_trainer = get_trainer_from_args(
-        dataset_name_or_id, configuration, fold, tr, p, pretrained_from_scratch=pretrained_from_scratch
+        dataset_name_or_id, configuration, fold, tr, p, pretrained_from_scratch=pretrained_from_scratch, overwrite_ckpt_path=overwrite_ckpt_path
     )
 
     if disable_checkpointing:

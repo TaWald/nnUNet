@@ -172,7 +172,7 @@ class PretrainedTrainer_Primusx_150ep_small_debug(PretrainedTrainer_Primusx):
             device: torch.device = torch.device("cuda"),
     ):
         plans["configurations"][configuration]["patch_size"] = (48, 48, 48)
-        plans["configurations"][configuration]["batch_size"] = 1
+        plans["configurations"][configuration]["batch_size"] = 2
         super().__init__(plans, configuration, fold, dataset_json, use_pretrained_weights, device)
         # Can be overriden to train same architecture from scratch.
         self.warmup_duration_whole_net = 15  # lin increase whole network
