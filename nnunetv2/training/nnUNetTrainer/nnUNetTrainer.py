@@ -9,7 +9,7 @@ from copy import deepcopy
 from datetime import datetime
 from time import time, sleep
 from typing import Tuple, Union, List
-
+import gc
 import numpy as np
 import torch
 from batchgenerators.dataloading.multi_threaded_augmenter import MultiThreadedAugmenter
@@ -67,6 +67,16 @@ from nnunetv2.utilities.helpers import empty_cache, dummy_context
 from nnunetv2.utilities.label_handling.label_handling import convert_labelmap_to_one_hot, determine_num_input_channels
 from nnunetv2.utilities.plans_handling.plans_handler import PlansManager
 
+def log_and_clear_cache():
+    device = torch.device("cuda")
+    print(f"Before: allocated={torch.cuda.memory_allocated(device)/1024**2:.2f} MB, "
+          f"reserved={torch.cuda.memory_reserved(device)/1024**2:.2f} MB")
+
+    gc.collect()
+    torch.cuda.empty_cache()
+
+    print(f"After:  allocated={torch.cuda.memory_allocated(device)/1024**2:.2f} MB, "
+          f"reserved={torch.cuda.memory_reserved(device)/1024**2:.2f} MB")
 
 class nnUNetTrainer(object):
     def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict,
@@ -1380,7 +1390,7 @@ class nnUNetTrainer(object):
 
     def run_training(self):
         self.on_train_start()
-
+        log_and_clear_cache()
         for epoch in range(self.current_epoch, self.num_epochs):
             self.on_epoch_start()
 
