@@ -302,16 +302,17 @@ def compute_surface_distances(mask_gt, mask_pred, spacing_mm):
     bbox_min[2] = np.min(idx_nonzero_2)
     bbox_max[2] = np.max(idx_nonzero_2)
 
-    cropmask_gt = np.zeros((bbox_max - bbox_min)+2, np.uint8)
-    cropmask_pred = np.zeros((bbox_max - bbox_min)+2, np.uint8)
+    x0, x1 = int(bbox_min[0]), int(bbox_max[0]) + 1
+    y0, y1 = int(bbox_min[1]), int(bbox_max[1]) + 1
+    z0, z1 = int(bbox_min[2]), int(bbox_max[2]) + 1
 
-    cropmask_gt[0:-1, 0:-1, 0:-1] = mask_gt[bbox_min[0]:bbox_max[0]+1,
-                                    bbox_min[1]:bbox_max[1]+1,
-                                    bbox_min[2]:bbox_max[2]+1]
+    sx, sy, sz = x1 - x0, y1 - y0, z1 - z0  # exact crop sizes
 
-    cropmask_pred[0:-1, 0:-1, 0:-1] = mask_pred[bbox_min[0]:bbox_max[0]+1,
-                                      bbox_min[1]:bbox_max[1]+1,
-                                      bbox_min[2]:bbox_max[2]+1]
+    cropmask_gt   = np.zeros((sx, sy, sz), dtype=np.uint8)
+    cropmask_pred = np.zeros((sx, sy, sz), dtype=np.uint8)
+
+    cropmask_gt[...]   = mask_gt[x0:x1, y0:y1, z0:z1]
+    cropmask_pred[...] = mask_pred[x0:x1, y0:y1, z0:z1]
 
     kernel = np.array([[[128,64], [32,16]], [[8,4], [2,1]]])
     neighbour_code_map_gt = ndimage.correlate(cropmask_gt.astype(np.uint8), kernel, mode="constant", cval=0)
