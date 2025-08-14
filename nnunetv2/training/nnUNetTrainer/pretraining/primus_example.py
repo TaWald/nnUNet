@@ -234,15 +234,17 @@ if __name__ == '__main__':
     arch = checkpoint['nnssl_adaptation_plan']['architecture_plans']['arch_kwargs']
     pre_train_statedict = checkpoint["network_weights"]
     print(checkpoint['nnssl_adaptation_plan'])
-    #### depend on your dataset#####
+
+
+    ################ depend on your dataset #######################
     patch_size = [192,192,192] # thats what we pretrained with, but can be tested to change for your dataset
     input_channels = 1 # depends on your task
     num_classes = 1  # depends on your tasks
-
+    batch_size = 2
+    ##############################################################
 
     # Creating the test input tensor
-    im_dim = patch_size
-    x = torch.rand([1, 1, *im_dim], device="cpu", dtype=torch.float32)
+    x = torch.rand([batch_size, input_channels, *patch_size], device="cpu", dtype=torch.float32)
 
 
     # Initializing Primus with the extracted architecture parameters

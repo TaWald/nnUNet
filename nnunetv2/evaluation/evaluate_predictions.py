@@ -117,10 +117,10 @@ def compute_metrics(reference_file: str, prediction_file: str, image_reader_writ
         results['metrics'][r]['TN'] = tn
         results['metrics'][r]['n_pred'] = fp + tp
         results['metrics'][r]['n_ref'] = fn + tp
-        if tp + fp + fn == 0:
-            results['metrics'][r]['NSD'] = np.nan
-        else:
-            results['metrics'][r]['NSD'] = NSD(mask_ref[0], mask_pred[0], seg_ref_dict['spacing'], distance_threshold, ignore_mask)
+        # if tp + fp + fn == 0:
+        #     results['metrics'][r]['NSD'] = np.nan
+        # else:
+        #     results['metrics'][r]['NSD'] = NSD(mask_ref[0], mask_pred[0], seg_ref_dict['spacing'], distance_threshold, ignore_mask)
     return results
 
 
