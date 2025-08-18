@@ -111,7 +111,7 @@ def load_pretrained_weights(
     pre_train_statedict = ckpt_file["network_weights"]
     adaptation_plan = ckpt_file['nnssl_adaptation_plan']
     pt_input_channels = adaptation_plan['pretrain_num_input_channels']
-    pt_input_patchsize = adaptation_plan["recommended_downstream_patchsize"]
+    pt_input_patchsize = adaptation_plan['pretrain_patch_size'] if 'pretrain_patch_size' in adaptation_plan.keys() else [160,160,160]
     pt_key_to_encoder = adaptation_plan["key_to_encoder"]
     pt_key_to_stem = adaptation_plan["key_to_stem"]
     pt_keys_to_in_proj = tuple(adaptation_plan["keys_to_in_proj"])

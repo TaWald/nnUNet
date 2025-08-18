@@ -180,14 +180,19 @@ class PretrainedTrainer(nnUNetTrainer):
         #    to skip the stem weight loading in the encoder, and then separately load the (repeated) stem weights
 
         # The following code does this.
-
         key_to_encoder = network.key_to_encoder  # Key to the encoder in the current network
         key_to_stem = network.key_to_stem  # Key to the stem (beginning) in the current network
 
         random_init_statedict = network.state_dict()
-        pre_train_statedict: dict[str, torch.Tensor] = torch.load(pretrained_weights_path, weights_only=True)[
-            "network_weights"  # Get pre-trained state dict
-        ]
+        ckp =  torch.load(pretrained_weights_path, weights_only=True)
+        pre_train_statedict: dict[str, torch.Tensor] =ckp["network_weights"]  # Get pre-trained state dict
+
+        ####allows overwrites (e.g for voco needed)
+        if 'nnssl_adaptation_plan' in ckp.keys():
+            if 'pretrain_patch_size' in ckp['nnssl_adaptation_plan'].keys():
+                pt_input_patchsize = ckp['nnssl_adaptation_plan']['pretrain_patch_size']
+        del ckp
+
         stem_in_encoder = pt_key_to_stem in pre_train_statedict
 
         # Currently we don't have the logic for interpolating the positional embedding yet.
