@@ -230,10 +230,11 @@ def load_pretrained_weights(
 if __name__ == '__main__':
 
     # Loading the checkpoint and extracting the network architecture parameters
-    checkpoint = torch.load("/home/c306h/rocket_share/mic_rocket/checkpoints/pretraining/MAE/Dataset804_Rocket_v3/BaseEvaMAETrainer_BS32_192ps_625ep_42_16_8_16_1056__nnsslPlans__noresample/fold_all/checkpoint_final.pth", map_location="cpu")
+    # checkpoint = torch.load("/home/c306h/rocket_share/mic_rocket/checkpoints/pretraining/MAE/Dataset804_Rocket_v3/BaseEvaMAETrainer_BS32_192ps_625ep_42_16_8_16_1056__nnsslPlans__noresample/fold_all/checkpoint_final.pth", map_location="cpu")
+    checkpoint =  torch.load('/home/c306h/rocket_share/mic_rocket/checkpoints/sharing/medium_mae_primus.pth', map_location="cpu")
     arch = checkpoint['nnssl_adaptation_plan']['architecture_plans']['arch_kwargs']
     pre_train_statedict = checkpoint["network_weights"]
-    print(checkpoint['nnssl_adaptation_plan'])
+    # print(checkpoint['nnssl_adaptation_plan'])
 
 
     ################ depend on your dataset #######################
