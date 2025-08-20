@@ -126,6 +126,7 @@ def train_pretrained(
                 val_with_best,
                 num_gpus,
                 from_scratch,
+                overwrite_ckpt_path,
             ),
             nprocs=num_gpus,
             join=True,
