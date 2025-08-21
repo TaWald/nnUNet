@@ -4,7 +4,6 @@ import torch
 from batchgenerators.utilities.file_and_folder_operations import isfile
 from dynamic_network_architectures.architectures.abstract_arch import AbstractDynamicNetworkArchitectures
 from torch._dynamo import OptimizedModule
-from torch.xpu import device
 
 from nnunetv2.training.loss.dice import get_tp_fp_fn_tn
 from nnunetv2.training.lr_scheduler.warmup import Lin_incr_LRScheduler, PolyLRScheduler_offset
@@ -187,23 +186,46 @@ class PretrainedTrainer(nnUNetTrainer):
         key_to_stem = network.key_to_stem  # Key to the stem (beginning) in the current network
 
         random_init_statedict = network.state_dict()
-        pre_train_statedict: dict[str, torch.Tensor] = torch.load(pretrained_weights_path, weights_only=True)[
-            "network_weights"  # Get pre-trained state dict
-        ]
+        ckp =  torch.load(pretrained_weights_path, weights_only=True)
+        pre_train_statedict: dict[str, torch.Tensor] =ckp["network_weights"]  # Get pre-trained state dict
+
+        #take info from ckpt path (allows to overwrite plan specifications)
+        if 'key_to_stem' in  ckp['nnssl_adaptation_plan'].keys():
+            pt_key_to_stem =  ckp['nnssl_adaptation_plan']['key_to_stem']
+        if 'key_to_encoder' in  ckp['nnssl_adaptation_plan'].keys():
+            pt_key_to_encoder =  ckp['nnssl_adaptation_plan']['key_to_encoder']
+        if 'keys_to_in_proj' in  ckp['nnssl_adaptation_plan'].keys():
+            pt_keys_to_in_proj =  ckp['nnssl_adaptation_plan']['keys_to_in_proj']
+        if 'key_to_lpe' in  ckp['nnssl_adaptation_plan'].keys():
+            pt_key_to_lpe =  ckp['nnssl_adaptation_plan']['key_to_lpe']
+
+        ####allows overwrites (e.g for voco needed)
+        if 'nnssl_adaptation_plan' in ckp.keys():
+            if 'pretrain_patch_size' in ckp['nnssl_adaptation_plan'].keys():
+                pt_input_patchsize = ckp['nnssl_adaptation_plan']['pretrain_patch_size']
+
+
+
         stem_in_encoder = pt_key_to_stem in pre_train_statedict
 
         # Currently we don't have the logic for interpolating the positional embedding yet.
         pt_weight_in_ch_mismatch = False
         need_to_adapt_lpe = False  # I.e. Learnable positional embedding
         key_to_lpe = getattr(network, "key_to_lpe", None)
+        lpe_in_stem = False
+
+        # # Check if the current module even uses a learnable positional embedding. If not ignore LPE logic.
+        # try:
+        #     network.get_submodule(key_to_lpe)
+        # except AttributeError:
+        #     key_to_lpe = None
 
         if key_to_lpe is not None:
-            print('here')
-            # Add interpolation logic for positional embeddings later
             lpe_in_encoder = key_to_lpe.startswith(key_to_encoder)
             lpe_in_stem = key_to_lpe.startswith(key_to_stem)
-            if pt_input_patchsize != downstream_input_patchsize:
-                need_to_adapt_lpe = True  # LPE shape won't fit ->  interpolate LPE
+        if pt_input_patchsize != downstream_input_patchsize:
+            need_to_adapt_lpe = True  # LPE shape won't fit -> resize it
+
 
         def strip_dot_prefix(s) -> str:
             """Mini func to strip the dot prefix from the keys"""
@@ -234,12 +256,10 @@ class PretrainedTrainer(nnUNetTrainer):
                                             'interpolate_trilinear',
                                             downstream_input_patchsize,
                                             pt_input_patchsize,
-                                            new_encoder_weights['eva.pos_embed'][2])
-                    print('did not believe it would work', new_encoder_weights['eva.pos_embed'][2])
-
-            if "cls_token" in encoder_weights.keys():
-                skip_strings_in_pretrained = ["cls_token"]
-                new_encoder_weights, found_cls_token = filter_state_dict(encoder_weights, skip_strings_in_pretrained)
+                                            new_encoder_weights['down_projection.proj.weight'].shape[2:])
+                if "cls_token" in encoder_weights.keys():
+                    skip_strings_in_pretrained = ["cls_token"]
+                    new_encoder_weights, found_cls_token = filter_state_dict(encoder_weights, skip_strings_in_pretrained)
 
             # ------------------------------- Load weights ------------------------------- #
             encoder_module = network.get_submodule(key_to_encoder)
@@ -262,13 +282,19 @@ class PretrainedTrainer(nnUNetTrainer):
             # --------------------------------- Adapt LPE -------------------------------- #
             if need_to_adapt_lpe:
                 if lpe_in_stem:  # Since stem not in encoder we need to take care of lpe in it here
-                    new_stem_weights[strip_dot_prefix(key_to_lpe.replace(key_to_stem, ""))] = (
-                        random_init_statedict[key_to_lpe]
-                    )
+                    handle_pos_embed_resize(new_stem_weights,
+                                            network.get_submodule(key_to_stem).state_dict(),
+                                            'interpolate_trilinear',
+                                            downstream_input_patchsize,
+                                            pt_input_patchsize,
+                                            new_stem_weights['proj.weight'].shape[2:])
                 elif lpe_in_encoder:
-                    new_encoder_weights[strip_dot_prefix(key_to_lpe.replace(key_to_encoder, ""))] = (
-                        random_init_statedict[key_to_lpe]
-                    )
+                    handle_pos_embed_resize(new_encoder_weights,
+                                            network.get_submodule(key_to_encoder).state_dict(),
+                                            'interpolate_trilinear',
+                                            downstream_input_patchsize,
+                                            pt_input_patchsize,
+                                            new_stem_weights['proj.weight'].shape[2:])
                 else:
                     pass
             if "cls_token" in encoder_weights.keys():
@@ -280,6 +306,7 @@ class PretrainedTrainer(nnUNetTrainer):
             encoder_module.load_state_dict(new_encoder_weights)
             stem_module = network.get_submodule(key_to_stem)
             stem_module.load_state_dict(new_stem_weights)
+            del  new_stem_weights, stem_weights
 
 
         if not need_to_adapt_lpe and key_to_lpe is not None:
@@ -292,7 +319,7 @@ class PretrainedTrainer(nnUNetTrainer):
             # ------------------------------- Load weights ------------------------------- #
 
         # Theoretically we don't need to return the network, but we do it anyway.
-        del pre_train_statedict, encoder_weights,  new_encoder_weights, new_stem_weights, stem_weights
+        del pre_train_statedict, encoder_weights,  new_encoder_weights
         return network, pt_weight_in_ch_mismatch
 
     @staticmethod

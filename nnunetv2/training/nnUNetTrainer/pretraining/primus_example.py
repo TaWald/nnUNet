@@ -73,11 +73,11 @@ def filter_state_dict(state_dict, skip_strings):
 
 def load_pretrained_weights(
         network: AbstractDynamicNetworkArchitectures,
-        pre_train_statedict: dict[str, torch.Tensor],
+        pre_train_statedict: dict,
         pt_input_channels: int,
         downstream_input_channels: int,
         pt_input_patchsize: int,
-        downstream_input_patchsize: tuple[int,...],
+        downstream_input_patchsize: int,
         pt_key_to_encoder: str,
         pt_key_to_stem: str,
         pt_keys_to_in_proj: tuple[str, ...],
@@ -123,19 +123,21 @@ def load_pretrained_weights(
     key_to_stem = network.key_to_stem  # Key to the stem (beginning) in the current network
 
     random_init_statedict = network.state_dict()
+
     stem_in_encoder = pt_key_to_stem in pre_train_statedict
 
     # Currently we don't have the logic for interpolating the positional embedding yet.
     pt_weight_in_ch_mismatch = False
     need_to_adapt_lpe = False  # I.e. Learnable positional embedding
     key_to_lpe = getattr(network, "key_to_lpe", None)
+    lpe_in_stem = False
 
     if key_to_lpe is not None:
-        # Add interpolation logic for positional embeddings later
         lpe_in_encoder = key_to_lpe.startswith(key_to_encoder)
         lpe_in_stem = key_to_lpe.startswith(key_to_stem)
-        if pt_input_patchsize != downstream_input_patchsize:
-            need_to_adapt_lpe = True  # LPE shape won't fit ->  interpolate LPE
+    if pt_input_patchsize != downstream_input_patchsize:
+        need_to_adapt_lpe = True  # LPE shape won't fit -> resize it
+
 
     def strip_dot_prefix(s) -> str:
         """Mini func to strip the dot prefix from the keys"""
@@ -166,12 +168,10 @@ def load_pretrained_weights(
                                         'interpolate_trilinear',
                                         downstream_input_patchsize,
                                         pt_input_patchsize,
-                                        new_encoder_weights['eva.pos_embed'][2])
-                print('did not believe it would work', new_encoder_weights['eva.pos_embed'][2])
-
-        if "cls_token" in encoder_weights.keys():
-            skip_strings_in_pretrained = ["cls_token"]
-            new_encoder_weights, found_cls_token = filter_state_dict(encoder_weights, skip_strings_in_pretrained)
+                                        new_encoder_weights['down_projection.proj.weight'].shape[2:])
+            if "cls_token" in encoder_weights.keys():
+                skip_strings_in_pretrained = ["cls_token"]
+                new_encoder_weights, found_cls_token = filter_state_dict(encoder_weights, skip_strings_in_pretrained)
 
         # ------------------------------- Load weights ------------------------------- #
         encoder_module = network.get_submodule(key_to_encoder)
@@ -194,13 +194,19 @@ def load_pretrained_weights(
         # --------------------------------- Adapt LPE -------------------------------- #
         if need_to_adapt_lpe:
             if lpe_in_stem:  # Since stem not in encoder we need to take care of lpe in it here
-                new_stem_weights[strip_dot_prefix(key_to_lpe.replace(key_to_stem, ""))] = (
-                    random_init_statedict[key_to_lpe]
-                )
+                handle_pos_embed_resize(new_stem_weights,
+                                        network.get_submodule(key_to_stem).state_dict(),
+                                        'interpolate_trilinear',
+                                        downstream_input_patchsize,
+                                        pt_input_patchsize,
+                                        new_stem_weights['proj.weight'].shape[2:])
             elif lpe_in_encoder:
-                new_encoder_weights[strip_dot_prefix(key_to_lpe.replace(key_to_encoder, ""))] = (
-                    random_init_statedict[key_to_lpe]
-                )
+                handle_pos_embed_resize(new_encoder_weights,
+                                        network.get_submodule(key_to_encoder).state_dict(),
+                                        'interpolate_trilinear',
+                                        downstream_input_patchsize,
+                                        pt_input_patchsize,
+                                        new_stem_weights['proj.weight'].shape[2:])
             else:
                 pass
         if "cls_token" in encoder_weights.keys():
@@ -212,6 +218,7 @@ def load_pretrained_weights(
         encoder_module.load_state_dict(new_encoder_weights)
         stem_module = network.get_submodule(key_to_stem)
         stem_module.load_state_dict(new_stem_weights)
+        del  new_stem_weights, stem_weights
 
 
     if not need_to_adapt_lpe and key_to_lpe is not None:
@@ -223,15 +230,15 @@ def load_pretrained_weights(
         network.get_parameter(key_to_lpe).data = list(lpe_weights.values())[0]
         # ------------------------------- Load weights ------------------------------- #
 
-    del pre_train_statedict, encoder_weights,  new_encoder_weights, new_stem_weights, stem_weights
     # Theoretically we don't need to return the network, but we do it anyway.
+    del pre_train_statedict, encoder_weights,  new_encoder_weights
     return network, pt_weight_in_ch_mismatch
 
 if __name__ == '__main__':
 
     # Loading the checkpoint and extracting the network architecture parameters
     # checkpoint = torch.load("/home/c306h/rocket_share/mic_rocket/checkpoints/pretraining/MAE/Dataset804_Rocket_v3/BaseEvaMAETrainer_BS32_192ps_625ep_42_16_8_16_1056__nnsslPlans__noresample/fold_all/checkpoint_final.pth", map_location="cpu")
-    checkpoint =  torch.load('/home/c306h/rocket_share/mic_rocket/checkpoints/sharing/medium_mae_primus.pth', map_location="cpu")
+    checkpoint =  torch.load('/home/c306h/rocket_share/mic_rocket/checkpoints/sharing/big_mae_primus.pth', map_location="cpu")
     arch = checkpoint['nnssl_adaptation_plan']['architecture_plans']['arch_kwargs']
     pre_train_statedict = checkpoint["network_weights"]
     # print(checkpoint['nnssl_adaptation_plan'])
@@ -293,6 +300,7 @@ Some notes for custom training pipeline
 - Zscore normalization
 - We did not use a fixed the target spacing during pretraining -> can be selected depending on your dataset
 
+What we use for finetuning: 
 - optimizer = torch.optim.AdamW(
                     params,
                     self.initial_lr,
@@ -303,7 +311,6 @@ Some notes for custom training pipeline
                 )
 - initial_lr = 1e-4
 - weight_decay = 5e-2
-
 - Recommended LR scheduler:
     ~ 10% of training linear increasing lr
     then decreasing poly lr

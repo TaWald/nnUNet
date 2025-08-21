@@ -7,11 +7,11 @@ import pydoc
 
 def load_pretrained_weights(
         network: AbstractDynamicNetworkArchitectures,
-        pre_train_statedict: dict[str, torch.Tensor],
+        pre_train_statedict: dict,
         pt_input_channels: int,
         downstream_input_channels: int,
         pt_input_patchsize: int,
-        downstream_input_patchsize: tuple[int,...],
+        downstream_input_patchsize: int,
         pt_key_to_encoder: str,
         pt_key_to_stem: str,
         pt_keys_to_in_proj: tuple[str, ...],
@@ -57,11 +57,11 @@ def load_pretrained_weights(
     key_to_stem = network.key_to_stem  # Key to the stem (beginning) in the current network
 
     random_init_statedict = network.state_dict()
+
     stem_in_encoder = pt_key_to_stem in pre_train_statedict
 
     # Currently we don't have the logic for interpolating the positional embedding yet.
     pt_weight_in_ch_mismatch = False
-    need_to_adapt_lpe = False  # I.e. Learnable positional embedding
 
     def strip_dot_prefix(s) -> str:
         """Mini func to strip the dot prefix from the keys"""
@@ -85,7 +85,6 @@ def load_pretrained_weights(
             strip_dot_prefix(k.replace(pt_key_to_encoder, "")): v for k, v in encoder_weights.items()
         }
 
-
         # ------------------------------- Load weights ------------------------------- #
         encoder_module = network.get_submodule(key_to_encoder)
         encoder_module.load_state_dict(new_encoder_weights)
@@ -104,7 +103,6 @@ def load_pretrained_weights(
             strip_dot_prefix(k.replace(pt_key_to_encoder, "")): v for k, v in encoder_weights.items()
         }
         new_stem_weights = {strip_dot_prefix(k.replace(pt_key_to_stem, "")): v for k, v in stem_weights.items()}
-        # --------------------------------- Adapt LPE -------------------------------- #
 
 
         # ------------------------------- Load weights ------------------------------- #
@@ -112,8 +110,10 @@ def load_pretrained_weights(
         encoder_module.load_state_dict(new_encoder_weights)
         stem_module = network.get_submodule(key_to_stem)
         stem_module.load_state_dict(new_stem_weights)
-
+        del  new_stem_weights, stem_weights
+        # ------------------------------- Load weights ------------------------------- #
     # Theoretically we don't need to return the network, but we do it anyway.
+    del pre_train_statedict, encoder_weights,  new_encoder_weights
     return network, pt_weight_in_ch_mismatch
 
 if __name__ == '__main__':
