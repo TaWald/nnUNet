@@ -257,6 +257,7 @@ class PretrainedTrainer(nnUNetTrainer):
                                             downstream_input_patchsize,
                                             pt_input_patchsize,
                                             new_encoder_weights['down_projection.proj.weight'].shape[2:])
+                    new_encoder_weights["pos_embed"].to(next(network.parameters()).device)
                 if "cls_token" in encoder_weights.keys():
                     skip_strings_in_pretrained = ["cls_token"]
                     new_encoder_weights, found_cls_token = filter_state_dict(encoder_weights, skip_strings_in_pretrained)
@@ -288,6 +289,7 @@ class PretrainedTrainer(nnUNetTrainer):
                                             downstream_input_patchsize,
                                             pt_input_patchsize,
                                             new_stem_weights['proj.weight'].shape[2:])
+                    new_stem_weights["pos_embed"].to(next(network.parameters()).device)
                 elif lpe_in_encoder:
                     handle_pos_embed_resize(new_encoder_weights,
                                             network.get_submodule(key_to_encoder).state_dict(),
@@ -295,6 +297,7 @@ class PretrainedTrainer(nnUNetTrainer):
                                             downstream_input_patchsize,
                                             pt_input_patchsize,
                                             new_stem_weights['proj.weight'].shape[2:])
+                    new_encoder_weights["pos_embed"].to(next(network.parameters()).device)
                 else:
                     pass
             if "cls_token" in encoder_weights.keys():
@@ -315,7 +318,7 @@ class PretrainedTrainer(nnUNetTrainer):
             assert (
                 len(lpe_weights) == 1
             ), f"Found multiple lpe weights, but expect only a single tensor. Got {list(lpe_weights.keys())}"
-            network.get_parameter(key_to_lpe).data = list(lpe_weights.values())[0]
+            network.get_parameter(key_to_lpe).data = list(lpe_weights.values())[0].to(next(network.parameters()).device)
             # ------------------------------- Load weights ------------------------------- #
 
         # Theoretically we don't need to return the network, but we do it anyway.
