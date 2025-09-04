@@ -19,6 +19,13 @@ from nnunetv2.utilities.label_handling.label_handling import determine_num_input
 from nnunetv2.utilities.load_weights_utils import *
 warmup_stages = Literal["warmup_all", "warmup_decoder", "train_all", "train_decoder"]
 
+def report_unused_params(model):
+    unused = []
+    for n, p in model.named_parameters():
+        if p.requires_grad and p.grad is None:
+            unused.append(n)
+    if unused:
+        print(f"[Rank {torch.distributed.get_rank()}] Unused this iter:", unused)
 
 class PretrainedTrainer(nnUNetTrainer):
 
@@ -117,7 +124,10 @@ class PretrainedTrainer(nnUNetTrainer):
             if self.is_ddp:
                 self.network = self.network.to(self.device)
                 self.network = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.network)
-                self.network = DDP(self.network, device_ids=[self.local_rank])
+                self.network = DDP(self.network,
+                                   device_ids=[self.local_rank],
+                                   find_unused_parameters=True,         # enables per iteration graph traversal
+                                   static_graph=False )
 
             self.loss = self._build_loss()
 
