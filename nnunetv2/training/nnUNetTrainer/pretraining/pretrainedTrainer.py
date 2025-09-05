@@ -19,13 +19,6 @@ from nnunetv2.utilities.label_handling.label_handling import determine_num_input
 from nnunetv2.utilities.load_weights_utils import *
 warmup_stages = Literal["warmup_all", "warmup_decoder", "train_all", "train_decoder"]
 
-def report_unused_params(model):
-    unused = []
-    for n, p in model.named_parameters():
-        if p.requires_grad and p.grad is None:
-            unused.append(n)
-    if unused:
-        print(f"[Rank {torch.distributed.get_rank()}] Unused this iter:", unused)
 
 class PretrainedTrainer(nnUNetTrainer):
 
@@ -128,9 +121,7 @@ class PretrainedTrainer(nnUNetTrainer):
                                    device_ids=[self.local_rank],
                                    find_unused_parameters=True,         # enables per iteration graph traversal
                                    static_graph=False )
-
             self.loss = self._build_loss()
-
             self.dataset_class = infer_dataset_class(self.preprocessed_dataset_folder)
 
             # torch 2.2.2 crashes upon compiling CE loss
@@ -233,8 +224,9 @@ class PretrainedTrainer(nnUNetTrainer):
         if key_to_lpe is not None:
             lpe_in_encoder = key_to_lpe.startswith(key_to_encoder)
             lpe_in_stem = key_to_lpe.startswith(key_to_stem)
-        if pt_input_patchsize != downstream_input_patchsize:
-            need_to_adapt_lpe = True  # LPE shape won't fit -> resize it
+            if pt_input_patchsize != downstream_input_patchsize:
+                if lpe_in_stem is not None or lpe_in_encoder is not None:
+                    need_to_adapt_lpe = True# LPE shape won't fit -> resize it
 
 
         def strip_dot_prefix(s) -> str:
@@ -645,5 +637,24 @@ class PretrainedTrainer_Primus_150ep(PretrainedTrainer_Primus):
         self.warmup_duration_whole_net = 15  # lin increase whole network
         self.num_epochs = 150 # lin increase whole network
 
+class PretrainedTrainer_150ep_nomirroring(PretrainedTrainer):
 
-
+    def __init__(
+            self,
+            plans: dict,
+            configuration: str,
+            fold: int,
+            dataset_json: dict,
+            use_pretrained_weights: bool = True,
+            device: torch.device = torch.device("cuda"),
+    ):
+        super().__init__(plans, configuration, fold, dataset_json, use_pretrained_weights, device)
+        # Can be overriden to train same architecture from scratch.
+        self.warmup_duration_whole_net = 15 # lin increase whole network
+        self.num_epochs = 150
+    def configure_rotation_dummyDA_mirroring_and_inital_patch_size(self):
+        rotation_for_DA, do_dummy_2d_data_aug, initial_patch_size, mirror_axes = \
+            super().configure_rotation_dummyDA_mirroring_and_inital_patch_size()
+        mirror_axes = None
+        self.inference_allowed_mirroring_axes = None
+        return rotation_for_DA, do_dummy_2d_data_aug, initial_patch_size, mirror_axes
