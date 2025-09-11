@@ -1017,7 +1017,6 @@ class nnUNetTrainer(object):
             # del data
             l = self.loss(output, target)
             del output, data
-        print(torch.cuda.memory_summary(device=self.device, abbreviated=True))
         if self.grad_scaler is not None:
             self.grad_scaler.scale(l).backward()
             self.grad_scaler.unscale_(self.optimizer)

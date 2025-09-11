@@ -447,7 +447,7 @@ class ExperimentPlanner(object):
             num_voxels_in_patch = np.prod(patch_size_fullres, dtype=np.float64)
 
             plan_3d_lowres = None
-            lowres_spacing = deepcopy(plan_3d_fullres['spacing'])
+            lowres_spacing = np.array(deepcopy(plan_3d_fullres['spacing']))
 
             spacing_increase_factor = 1.03  # used to be 1.01 but that is slow with new GPU memory estimation!
             while num_voxels_in_patch / median_num_voxels < self.lowres_creation_threshold:
