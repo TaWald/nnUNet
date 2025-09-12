@@ -127,7 +127,9 @@ class PretrainedTrainer_Primusx(PretrainedTrainer_Primus):
         enable_deep_supervision: bool = True,
         ) -> nn.Module:
         # this architecture will crash if the patch size is not divisible by 8!
-
+        if 'init_values' in arch_init_kwargs:
+            if isinstance(arch_init_kwargs['init_values'], list):
+                arch_init_kwargs['init_values'] = arch_init_kwargs['init_values'][0]
         model = Primus(
             num_input_channels,
             arch_init_kwargs['embed_dim'],
@@ -137,8 +139,8 @@ class PretrainedTrainer_Primusx(PretrainedTrainer_Primus):
             arch_init_kwargs['encoder_eva_numheads'],
             input_patch_size,
             drop_path_rate=0.2,
-            scale_attn_inner=True,
-            init_values=0.1,
+            scale_attn_inner=arch_init_kwargs['scale_attn_inner'],
+            init_values=arch_init_kwargs['init_values'],
         )
         return model
 
