@@ -460,6 +460,7 @@ class ExperimentPlanner(object):
                     mask = (max_spacing / lowres_spacing) > 2
                     lowres_spacing[mask] *= spacing_increase_factor
                 else:
+                    lowres_spacing = np.array(lowres_spacing)  # Ensure it's a NumPy array
                     lowres_spacing *= spacing_increase_factor
                 median_num_voxels = np.prod(plan_3d_fullres['spacing'] / lowres_spacing * new_median_shape_transposed,
                                             dtype=np.float64)

@@ -105,7 +105,7 @@ def preprocess_like_nnssl(
     downstream_config: ConfigurationManager = downstream_plans_manager.get_configuration("3d_fullres")
     fullres_spacing = downstream_config.spacing
 
-    loaded_pretrain_ckpt = torch.load(pt_ckpt, weights_only=True)
+    loaded_pretrain_ckpt = torch.load(pt_ckpt, weights_only=True, map_location="cpu")
     adaptation_plan = loaded_pretrain_ckpt["nnssl_adaptation_plan"]
     citations = loaded_pretrain_ckpt["citations"] if "citations" in loaded_pretrain_ckpt else []
     pretrain_config = list(adaptation_plan["pretrain_plan"]["configurations"].values())[0]
