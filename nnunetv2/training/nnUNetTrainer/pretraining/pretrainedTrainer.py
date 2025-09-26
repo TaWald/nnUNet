@@ -6,7 +6,7 @@ from dynamic_network_architectures.architectures.abstract_arch import AbstractDy
 from torch._dynamo import OptimizedModule
 
 from nnunetv2.training.loss.dice import get_tp_fp_fn_tn
-from nnunetv2.training.lr_scheduler.warmup import Lin_incr_LRScheduler, PolyLRScheduler_offset
+from nnunetv2.training.lr_scheduler.warmup import Lin_incr_LRScheduler, Lin_incr_offset_LRScheduler, PolyLRScheduler_offset
 from nnunetv2.utilities.get_network_via_name import get_network_from_name
 from torch import nn, autocast
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -377,22 +377,39 @@ class PretrainedTrainer(nnUNetTrainer):
         return network
 
     def configure_optimizers(self, stage: str = "warmup_all"):
-        assert stage in ["warmup_all", "train"]
+        assert stage in ["warmup_decoder", "warmup_all", "train"]
 
         if self.training_stage == stage:
             return self.optimizer, self.lr_scheduler
 
         if isinstance(self.network, DDP):
-            params = self.network.module.parameters()
+            network_module = self.network.module
         else:
-            params = self.network.parameters()
+            network_module = self.network
 
-        if stage == "warmup_all":
-            self.print_to_log_file("train whole net, warmup")
+        if stage == "warmup_decoder":
+            self.print_to_log_file("train decoder only, encoder frozen, warmup")
+            # Freeze encoder parameters
+            encoder = network_module.get_submodule(network_module.key_to_encoder)
+            for param in encoder.parameters():
+                param.requires_grad = False
+            params = network_module.parameters()
             optimizer = torch.optim.SGD(
                 params, self.initial_lr, weight_decay=self.weight_decay, momentum=0.99, nesterov=True
             )
             lr_scheduler = Lin_incr_LRScheduler(optimizer, self.initial_lr, self.warmup_duration_whole_net)
+            self.print_to_log_file(f"Initialized warmup_decoder optimizer and lr_scheduler at epoch {self.current_epoch}")
+        elif stage == "warmup_all":
+            self.print_to_log_file("train whole net, warmup")
+            # Unfreeze encoder parameters
+            encoder = network_module.get_submodule(network_module.key_to_encoder)
+            for param in encoder.parameters():
+                param.requires_grad = True
+            params = network_module.parameters()
+            optimizer = torch.optim.SGD(
+                params, self.initial_lr, weight_decay=self.weight_decay, momentum=0.99, nesterov=True
+            )
+            lr_scheduler = Lin_incr_offset_LRScheduler(optimizer, self.initial_lr, 2 * self.warmup_duration_whole_net, self.warmup_duration_whole_net)
             self.print_to_log_file(f"Initialized warmup_all optimizer and lr_scheduler at epoch {self.current_epoch}")
         else:
             self.print_to_log_file("train whole net, default schedule")
@@ -401,11 +418,12 @@ class PretrainedTrainer(nnUNetTrainer):
                 # the accumulated momentum terms which already point in a useful driection
                 optimizer = self.optimizer
             else:
+                params = network_module.parameters()
                 optimizer = torch.optim.SGD(
                     params, self.initial_lr, weight_decay=self.weight_decay, momentum=0.99, nesterov=True
                 )
             lr_scheduler = PolyLRScheduler_offset(
-                optimizer, self.initial_lr, self.num_epochs, self.warmup_duration_whole_net
+                optimizer, self.initial_lr, self.num_epochs, 2 * self.warmup_duration_whole_net
             )
             self.print_to_log_file(f"Initialized train optimizer and lr_scheduler at epoch {self.current_epoch}")
         self.training_stage = stage
@@ -422,14 +440,18 @@ class PretrainedTrainer(nnUNetTrainer):
     def on_train_epoch_start(self):
         """Steers the learning rate schedule used during fine-tuning."""
         if self.current_epoch == 0:
-            self.optimizer, self.lr_scheduler = self.configure_optimizers("warmup_all")
+            self.optimizer, self.lr_scheduler = self.configure_optimizers("warmup_decoder")
         elif self.current_epoch == self.warmup_duration_whole_net:
+            self.optimizer, self.lr_scheduler = self.configure_optimizers("warmup_all")
+        elif self.current_epoch == 2 * self.warmup_duration_whole_net:
             self.optimizer, self.lr_scheduler = self.configure_optimizers("train")
 
         super().on_train_epoch_start()
 
     def get_stage(self):
         if self.current_epoch < self.warmup_duration_whole_net:
+            stage = 'warmup_decoder'
+        elif self.current_epoch < 2 * self.warmup_duration_whole_net:
             stage = 'warmup_all'
         else:
             stage = 'train'
@@ -543,6 +565,22 @@ class PretrainedTrainer_Primus(PretrainedTrainer):
         self.training_stage = stage
         empty_cache(self.device)
         return optimizer, lr_scheduler
+
+    def on_train_epoch_start(self):
+        """Steers the learning rate schedule used during fine-tuning."""
+        if self.current_epoch == 0:
+            self.optimizer, self.lr_scheduler = self.configure_optimizers("warmup_all")
+        elif self.current_epoch == self.warmup_duration_whole_net:
+            self.optimizer, self.lr_scheduler = self.configure_optimizers("train")
+
+        super().on_train_epoch_start()
+
+    def get_stage(self):
+        if self.current_epoch < self.warmup_duration_whole_net:
+            stage = 'warmup_all'
+        else:
+            stage = 'train'
+        return stage
 
     def train_step(self, batch: dict) -> dict:
         data = batch["data"]
