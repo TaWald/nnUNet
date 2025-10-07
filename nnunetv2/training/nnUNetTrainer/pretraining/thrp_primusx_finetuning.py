@@ -115,16 +115,15 @@ class PretrainedTrainer_Primusx(PretrainedTrainer_Primus):
                 "You have called self.initialize even though the trainer was already initialized. "
                 "That should not happen."
             )
-
+    @staticmethod
     def build_network_architecture(
-        self,
         architecture_class_name: str,
         arch_init_kwargs: dict,
         arch_init_kwargs_req_import: Union[List[str], Tuple[str, ...]],
-        input_patch_size: tuple[int, int, int],
         num_input_channels: int,
         num_output_channels: int,
         enable_deep_supervision: bool = True,
+        input_patch_size: tuple[int, int, int] = None,
         ) -> nn.Module:
         # this architecture will crash if the patch size is not divisible by 8!
         if 'init_values' in arch_init_kwargs:

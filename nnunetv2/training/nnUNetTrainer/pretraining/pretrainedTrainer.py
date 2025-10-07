@@ -336,6 +336,7 @@ class PretrainedTrainer(nnUNetTrainer):
         num_input_channels: int,
         num_output_channels: int,
         enable_deep_supervision: bool = True,
+        **kwargs
     ) -> AbstractDynamicNetworkArchitectures:
         """
         This is where you build the architecture according to the plans. There is no obligation to use
