@@ -5,14 +5,14 @@ import os
 import multiprocessing as mp
 import nnunetv2
 import torch.cuda
-
+import torch.distributed as dist
 import torch.multiprocessing as mp
 from batchgenerators.utilities.file_and_folder_operations import join, isfile, load_json
 from nnunetv2.paths import nnUNet_preprocessed
 from nnunetv2.training.nnUNetTrainer.nnUNetTrainer import nnUNetTrainer
 from nnunetv2.utilities.dataset_name_id_conversion import maybe_convert_to_dataset_name
 from nnunetv2.utilities.find_class_by_name import recursive_find_python_class
-from nnunetv2.run.run_training import find_free_network_port, maybe_load_checkpoint, run_ddp
+from nnunetv2.run.run_training import find_free_network_port, maybe_load_checkpoint, run_ddp, setup_ddp, cleanup_ddp
 from torch.backends import cudnn
 from batchgenerators.utilities.file_and_folder_operations import join
 
@@ -63,6 +63,7 @@ def get_trainer_from_args(
     dataset_json = load_json(join(preprocessed_dataset_folder_base, "dataset.json"))
     if pretrained_from_scratch:
         plans["plans_name"] = plans["plans_name"] + "__from_scratch"
+        plans["pretrain_info"]["checkpoint_path"] = None
     if overwrite_ckpt_path is not None:
         plans["pretrain_info"]["checkpoint_path"] = overwrite_ckpt_path
     nnunet_trainer = nnunet_trainer(
@@ -167,6 +168,48 @@ def train_pretrained(
             nnunet_trainer.load_checkpoint(join(nnunet_trainer.output_folder, "checkpoint_best.pth"))
         nnunet_trainer.perform_actual_validation(export_validation_probabilities)
 
+def run_ddp(
+        rank,
+        dataset_name_or_id,
+        configuration,
+        fold,
+        tr,
+        p,
+        disable_checkpointing,
+        c,
+        val,
+        pretrained_weights,
+        npz,
+        val_with_best,
+        world_size,
+        pretrained_from_scratch=False,
+        overwrite_ckpt_path=None,
+):
+    setup_ddp(rank, world_size)
+    torch.cuda.set_device(torch.device("cuda", dist.get_rank()))
+
+    nnunet_trainer = get_trainer_from_args(
+        dataset_name_or_id, configuration, fold, tr, p, pretrained_from_scratch=pretrained_from_scratch, overwrite_ckpt_path=overwrite_ckpt_path
+    )
+
+    if disable_checkpointing:
+        nnunet_trainer.disable_checkpointing = disable_checkpointing
+
+    assert not (c and val), f"Cannot set --c and --val flag at the same time. Dummy."
+
+    maybe_load_checkpoint(nnunet_trainer, c, val, pretrained_weights)
+
+    if torch.cuda.is_available():
+        cudnn.deterministic = False
+        cudnn.benchmark = True
+
+    if not val:
+        nnunet_trainer.run_training()
+
+    if val_with_best:
+        nnunet_trainer.load_checkpoint(join(nnunet_trainer.output_folder, "checkpoint_best.pth"))
+    nnunet_trainer.perform_actual_validation(npz)
+    cleanup_ddp()
 
 def train_pretrained_entrypoint():
     parser = argparse.ArgumentParser()
