@@ -638,7 +638,7 @@ class PretrainedTrainer_Primus_150ep(PretrainedTrainer_Primus):
         self.warmup_duration_whole_net = 15  # lin increase whole network
         self.num_epochs = 150 # lin increase whole network
 
-class PretrainedTrainer_nomirroring(PretrainedTrainer):
+class PretrainedTrainer_150ep_nomirroring(PretrainedTrainer):
 
     def __init__(
             self,
