@@ -496,3 +496,12 @@ class PretrainedTrainer_Primusv2x_150ep_warmup(PretrainedTrainer_Primusv2x):
         self.training_stage = stage
         empty_cache(self.device)
         return optimizer, lr_scheduler
+
+
+class PretrainedTrainer_Primusv2x_150ep_warmup_nomirroring(PretrainedTrainer_Primusv2x_150ep_warmup):
+    def configure_rotation_dummyDA_mirroring_and_inital_patch_size(self):
+        rotation_for_DA, do_dummy_2d_data_aug, initial_patch_size, mirror_axes = \
+            super().configure_rotation_dummyDA_mirroring_and_inital_patch_size()
+        mirror_axes = None
+        self.inference_allowed_mirroring_axes = None
+        return rotation_for_DA, do_dummy_2d_data_aug, initial_patch_size, mirror_axes
