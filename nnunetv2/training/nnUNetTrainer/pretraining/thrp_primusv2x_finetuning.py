@@ -392,6 +392,8 @@ class PretrainedTrainer_Primusv2x_150ep_warmup(PretrainedTrainer_Primusv2x):
             use_pretrained_weights: bool = True,
             device: torch.device = torch.device("cuda"),
     ):
+        plans["configurations"][configuration]["patch_size"] = (48, 48, 48)
+        plans["configurations"][configuration]["batch_size"] = 1
         super().__init__(plans, configuration, fold, dataset_json, use_pretrained_weights, device)
         # Can be overriden to train same architecture from scratch.
         self.initial_lr = 1e-4
@@ -442,8 +444,8 @@ class PretrainedTrainer_Primusv2x_150ep_warmup(PretrainedTrainer_Primusv2x):
             params = self.network.module.parameters()
             heads = self.network.module.up_projection.parameters()
             in_proj_params = []
-            for k in self.network.keys_to_in_proj:
-                in_proj_params += list(self.network.get_submodule(k).parameters())
+            for k in self.network.module.keys_to_in_proj:
+                in_proj_params += list(self.network.module.get_submodule(k).parameters())
             rnd_param = list(heads) + list(in_proj_params)
 
         else:
