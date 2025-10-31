@@ -392,8 +392,6 @@ class PretrainedTrainer_Primusv2x_150ep_warmup(PretrainedTrainer_Primusv2x):
             use_pretrained_weights: bool = True,
             device: torch.device = torch.device("cuda"),
     ):
-        plans["configurations"][configuration]["patch_size"] = (48, 48, 48)
-        plans["configurations"][configuration]["batch_size"] = 1
         super().__init__(plans, configuration, fold, dataset_json, use_pretrained_weights, device)
         # Can be overriden to train same architecture from scratch.
         self.initial_lr = 1e-4
@@ -419,7 +417,7 @@ class PretrainedTrainer_Primusv2x_150ep_warmup(PretrainedTrainer_Primusv2x):
         self.print_to_log_file('')
         self.print_to_log_file(f'Epoch {self.current_epoch}')
         self.print_to_log_file(
-            f"Current learning rate: {np.round(self.optimizer.param_groups[0]['lr'], decimals=5)}")
+            f"Current learning rate: {np.round(self.optimizer.param_groups[0]['lr'], decimals=7)}")
         # lrs are the same for all workers so we don't need to gather them in case of DDP training
         self.logger.log('lrs', self.optimizer.param_groups[0]['lr'], self.current_epoch)
 
