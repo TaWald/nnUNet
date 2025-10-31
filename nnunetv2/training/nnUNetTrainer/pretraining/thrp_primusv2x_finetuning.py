@@ -398,7 +398,7 @@ class PretrainedTrainer_Primusv2x_150ep_warmup(PretrainedTrainer_Primusv2x):
         self.warmup_lr_factor = 0.1 #during decoder warmup lr must be smaller otherwise training collaps
         self.weight_decay = 5e-2
         self.warmup_duration_decoder = 15
-        self.warmup_duration_whole_net = 50  # lin increase whole network
+        self.warmup_duration_whole_net = 15  # lin increase whole network
         self.num_epochs = 150
 
 
