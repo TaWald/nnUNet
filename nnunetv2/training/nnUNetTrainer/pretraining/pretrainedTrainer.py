@@ -302,9 +302,9 @@ class PretrainedTrainer(nnUNetTrainer):
                     new_encoder_weights["pos_embed"].to(next(network.parameters()).device)
                 else:
                     pass
-            if "cls_token" in encoder_weights.keys():
+            if "cls_token" in new_encoder_weights.keys():
                 skip_strings_in_pretrained = ["cls_token"]
-                new_encoder_weights, found_cls_token = filter_state_dict(encoder_weights, skip_strings_in_pretrained)
+                new_encoder_weights, found_cls_token = filter_state_dict(new_encoder_weights, skip_strings_in_pretrained)
 
             # ------------------------------- Load weights ------------------------------- #
             encoder_module = network.get_submodule(key_to_encoder)
