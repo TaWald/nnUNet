@@ -10,6 +10,7 @@ from datetime import datetime
 from time import time, sleep
 from typing import Tuple, Union, List
 import gc
+import signal
 import numpy as np
 import torch
 from batchgenerators.dataloading.multi_threaded_augmenter import MultiThreadedAugmenter
@@ -66,6 +67,7 @@ from nnunetv2.utilities.get_network_from_plans import get_network_from_plans
 from nnunetv2.utilities.helpers import empty_cache, dummy_context
 from nnunetv2.utilities.label_handling.label_handling import convert_labelmap_to_one_hot, determine_num_input_channels
 from nnunetv2.utilities.plans_handling.plans_handler import PlansManager
+
 
 def log_and_clear_cache():
     device = torch.device("cuda")
@@ -215,8 +217,12 @@ class nnUNetTrainer(object):
         self.disable_checkpointing = False
 
         self.was_initialized = False
+        self.exit_training_flag = False  # This is a signal flag that can be raised to exit gracefully
 
-        self.print_to_log_file("\n#######################################################################\n"
+        signal.signal(signal.SIGUSR1, self.exit_training)
+
+
+    self.print_to_log_file("\n#######################################################################\n"
                                "Please cite the following paper when using nnU-Net:\n"
                                "Isensee, F., Jaeger, P. F., Kohl, S. A., Petersen, J., & Maier-Hein, K. H. (2021). "
                                "nnU-Net: a self-configuring method for deep learning-based biomedical image segmentation. "
@@ -263,6 +269,11 @@ class nnUNetTrainer(object):
         else:
             raise RuntimeError("You have called self.initialize even though the trainer was already initialized. "
                                "That should not happen.")
+
+    def exit_training(self, *args, **kwargs):
+        self.print_to_log_file("Received exit signal. Terminating after finishing epoch.")
+        self.exit_training_flag = True
+
 
     def _do_i_compile(self):
         # new default: compile is enabled!
@@ -1408,5 +1419,11 @@ class nnUNetTrainer(object):
                 self.on_validation_epoch_end(val_outputs)
 
             self.on_epoch_end()
+            if self.exit_training_flag:
+                # This is a signal that we need to resubmit, so we break the loop and exit gracefully
+                print("Finished last epoch before restart.")
+                self.print_to_log_file("Finished last epoch before restart.")
+                raise KeyboardInterrupt
+
 
         self.on_train_end()

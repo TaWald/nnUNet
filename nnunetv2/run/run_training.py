@@ -2,7 +2,7 @@ import multiprocessing
 import os
 import socket
 from typing import Union, Optional
-
+import signal
 import nnunetv2
 import torch.cuda
 import torch.distributed as dist
@@ -162,6 +162,10 @@ def run_ddp(
         cudnn.deterministic = False
         cudnn.benchmark = True
 
+    # Prepare the auto-exiting in case wall-time is exceeded.
+    #  This sets a internal flag, letting the trainer know it's 10 minutes till wall-clock time is up.
+    signal.signal(signal.SIGUSR1, nnunet_trainer.exit_training)
+
     if not val:
         nnunet_trainer.run_training()
 
@@ -242,6 +246,10 @@ def run_training(
         nnunet_trainer = get_trainer_from_args(
             dataset_name_or_id, configuration, fold, trainer_class_name, plans_identifier, device=device, overwrite_ckpt_path=overwrite_ckpt_path,
         )
+
+        # Prepare the auto-exiting in case wall-time is exceeded.
+        #  This sets a internal flag, letting the trainer know it's 10 minutes till wall-clock time is up.
+        signal.signal(signal.SIGUSR1, nnunet_trainer.exit_training)
 
         if disable_checkpointing:
             nnunet_trainer.disable_checkpointing = disable_checkpointing

@@ -1,4 +1,5 @@
 import argparse
+import signal
 from typing import Union
 import torch
 import os
@@ -146,6 +147,10 @@ def train_pretrained(
 
         nnunet_trainer.use_pretrained_weights = False if (continue_training or from_scratch) else True
 
+        # Prepare the auto-exiting in case wall-time is exceeded.
+        #  This sets a internal flag, letting the trainer know it's 10 minutes till wall-clock time is up.
+        signal.signal(signal.SIGUSR1, nnunet_trainer.exit_training)
+
         if disable_checkpointing:
             nnunet_trainer.disable_checkpointing = disable_checkpointing
 
@@ -191,6 +196,10 @@ def run_ddp(
     nnunet_trainer = get_trainer_from_args(
         dataset_name_or_id, configuration, fold, tr, p, pretrained_from_scratch=pretrained_from_scratch, overwrite_ckpt_path=overwrite_ckpt_path
     )
+
+    # Prepare the auto-exiting in case wall-time is exceeded.
+    #  This sets a internal flag, letting the trainer know it's 10 minutes till wall-clock time is up.
+    signal.signal(signal.SIGUSR1, nnunet_trainer.exit_training)
 
     if disable_checkpointing:
         nnunet_trainer.disable_checkpointing = disable_checkpointing
