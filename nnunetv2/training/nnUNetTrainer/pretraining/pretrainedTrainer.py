@@ -205,28 +205,18 @@ class PretrainedTrainer(nnUNetTrainer):
             if 'pretrain_patch_size' in ckp['nnssl_adaptation_plan'].keys():
                 pt_input_patchsize = ckp['nnssl_adaptation_plan']['pretrain_patch_size']
 
-
-
         stem_in_encoder = pt_key_to_stem in pre_train_statedict
 
-        # Currently we don't have the logic for interpolating the positional embedding yet.
         pt_weight_in_ch_mismatch = False
         need_to_adapt_lpe = False  # I.e. Learnable positional embedding
         key_to_lpe = getattr(network, "key_to_lpe", None)
         lpe_in_stem = False
 
-        # # Check if the current module even uses a learnable positional embedding. If not ignore LPE logic.
-        # try:
-        #     network.get_submodule(key_to_lpe)
-        # except AttributeError:
-        #     key_to_lpe = None
-
         if key_to_lpe is not None:
             lpe_in_encoder = key_to_lpe.startswith(key_to_encoder)
             lpe_in_stem = key_to_lpe.startswith(key_to_stem)
             if pt_input_patchsize != downstream_input_patchsize:
-                if lpe_in_stem is not None or lpe_in_encoder is not None:
-                    need_to_adapt_lpe = True# LPE shape won't fit -> resize it
+                need_to_adapt_lpe = True# LPE shape won't fit -> resize it
 
 
         def strip_dot_prefix(s) -> str:
