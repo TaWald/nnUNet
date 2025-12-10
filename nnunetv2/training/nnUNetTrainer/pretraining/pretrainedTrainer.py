@@ -21,7 +21,6 @@ warmup_stages = Literal["warmup_all", "warmup_decoder", "train_all", "train_deco
 
 
 class PretrainedTrainer(nnUNetTrainer):
-
     def __init__(
         self,
         plans: dict,
@@ -31,6 +30,7 @@ class PretrainedTrainer(nnUNetTrainer):
         use_pretrained_weights: bool = True,
         device: torch.device = torch.device("cuda"),
     ):
+        plans['configurations'][configuration]['batch_size'] = 2
         super().__init__(plans, configuration, fold, dataset_json, device)
         # Can be overriden to train same architecture from scratch.
         self.initial_lr = 1e-3
