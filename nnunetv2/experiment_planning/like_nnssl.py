@@ -143,6 +143,8 @@ def preprocess_like_nnssl(
     # Set spacing
     adapted_config = adapted_plans.get_configuration("3d_fullres")
     adapted_config.configuration["spacing"] = new_spacing
+    # set batch size to 2
+    adapted_config.configuration["batch_size"] = 2
     # Set normalization schemes
     new_normalization_schemes = get_new_normalization_format(adapted_config)
     adapted_config.configuration["normalization_schemes"] = new_normalization_schemes
