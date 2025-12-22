@@ -8,13 +8,15 @@ import numpy as np
 
 from nnunetv2.preprocessing.preprocessors.default_preprocessor import DefaultPreprocessor
 from nnunetv2.utilities.plans_handling.plans_handler import ConfigurationManager, PlansManager
-from nnunetv2.paths import nnUNet_preprocessed
+from nnunetv2.paths import nnUNet_preprocessed, nnUNet_raw
 from nnunetv2.utilities.dataset_name_id_conversion import convert_id_to_dataset_name
-from batchgenerators.utilities.file_and_folder_operations import join, load_json, save_json, isfile
+from batchgenerators.utilities.file_and_folder_operations import join, load_json, save_json, isfile, maybe_mkdir_p
+
 import argparse
 from pathlib import Path
 from huggingface_hub import hf_hub_download
 
+from nnunetv2.utilities.utils import get_filenames_of_train_images_and_targets
 
 ADAPTATION_MODES = Literal["fixed", "default_nnunet", "no_resample", "like_pretrained"]
 
@@ -169,7 +171,17 @@ def preprocess_like_nnssl(
     # We never overwrite existing currently, as multiple preprocessors can share the same data files.
     #     Otherwise stuff might break.
     preprocessor.run(dataset_id, "3d_fullres", plans_name, num_processes=num_processes, overwrite_existing=False)
-
+    # copy the gt to a folder in the nnUNet_preprocessed so that we can do validation even if the raw data is no
+    # longer there (useful for compute cluster where only the preprocessed data is available)
+    from distutils.file_util import copy_file
+    maybe_mkdir_p(join(nnUNet_preprocessed, dataset_name, 'gt_segmentations'))
+    dataset_json = load_json(join(nnUNet_raw, dataset_name, 'dataset.json'))
+    dataset = get_filenames_of_train_images_and_targets(join(nnUNet_raw, dataset_name), dataset_json)
+    # only copy files that are newer than the ones already present
+    for k in dataset:
+        copy_file(dataset[k]['label'],
+                  join(nnUNet_preprocessed, dataset_name, 'gt_segmentations', k + dataset_json['file_ending']),
+                  update=True)
 
 def maybe_download_pretrained_weights(pretrained_checkpoint_path: str):
     """
