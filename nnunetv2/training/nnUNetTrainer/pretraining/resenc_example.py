@@ -119,9 +119,10 @@ def load_pretrained_weights(
 if __name__ == '__main__':
 
     # Loading the checkpoint and extracting the network architecture parameters
-    checkpoint =  torch.load('/home/c306h/rocket_share/mic_rocket/checkpoints/sharing/rocket_cnn_mae_width_m_depth_m_bs8.pth', map_location="cpu")
+    checkpoint =  torch.load('/home/c306h/rocket_share/mic_rocket/checkpoints/final_models/small_resencL.pth', map_location="cpu")
     arch = checkpoint['nnssl_adaptation_plan']['architecture_plans']['arch_kwargs']
     requires_import = checkpoint['nnssl_adaptation_plan']['architecture_plans']['arch_kwargs_requiring_import']
+    arch_class_name = checkpoint['nnssl_adaptation_plan']['architecture_plans']['arch_class_name']
     pre_train_statedict = checkpoint["network_weights"]
     # print(checkpoint['nnssl_adaptation_plan'])
 
@@ -136,28 +137,50 @@ if __name__ == '__main__':
     # Creating the test input tensor
     x = torch.rand([batch_size, input_channels, *patch_size], device="cpu", dtype=torch.float32)
 
-    for ri in requires_import:
-        if arch[ri] is not None:
-            arch[ri] = pydoc.locate(arch[ri])
-    # Initializing Primus with the extracted architecture parameters
-    resenc_kwargs = dict(
-        input_channels              = input_channels,
-        n_stages                    = arch['n_stages'],
-        features_per_stage          = arch['features_per_stage'],
-        conv_op                     = arch['conv_op'],
-        kernel_sizes                = arch['kernel_sizes'],
-        strides                     = arch['strides'],
-        n_blocks_per_stage          = arch['n_blocks_per_stage'],
-        num_classes                 = num_classes,
-        n_conv_per_stage_decoder    = arch['n_conv_per_stage_decoder'],
-        conv_bias                   = arch['conv_bias'],
-        norm_op                     = arch['norm_op'],
-        norm_op_kwargs              = arch['norm_op_kwargs'],
-        nonlin                      = arch['nonlin'],
-        nonlin_kwargs               = arch['nonlin_kwargs'],
-        deep_supervision            = True
-    )
-    model = ResidualEncoderUNet(**resenc_kwargs)
+
+    #the small primus model is the default ResEncL model. It has a fixed architecture thats why we can load it via the name
+
+    if arch_class_name == "ResEncL":
+        n_stages = 6
+        model = ResidualEncoderUNet(
+            input_channels=input_channels,
+            n_stages=n_stages,
+            features_per_stage=[32, 64, 128, 256, 320, 320],
+            conv_op=torch.nn.Conv3d,
+            kernel_sizes=[[3, 3, 3] for _ in range(n_stages)],
+            strides=[[1, 1, 1], [2, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2], [2, 2, 2]],
+            n_blocks_per_stage=[1, 3, 4, 6, 6, 6],
+            num_classes=num_classes,
+            n_conv_per_stage_decoder=[1, 1, 1, 1, 1],
+            conv_bias=True,
+            norm_op=torch.nn.InstanceNorm3d,
+            norm_op_kwargs={"eps": 1e-5, "affine": True},
+            nonlin=torch.nn.LeakyReLU,
+            nonlin_kwargs={"inplace": True},
+            deep_supervision=True,
+        )
+    else:
+        for ri in requires_import:
+            if arch[ri] is not None:
+                arch[ri] = pydoc.locate(arch[ri])
+        resenc_kwargs = dict(
+            input_channels              = input_channels,
+            n_stages                    = arch['n_stages'],
+            features_per_stage          = arch['features_per_stage'],
+            conv_op                     = arch['conv_op'],
+            kernel_sizes                = arch['kernel_sizes'],
+            strides                     = arch['strides'],
+            n_blocks_per_stage          = arch['n_blocks_per_stage'],
+            num_classes                 = num_classes,
+            n_conv_per_stage_decoder    = arch['n_conv_per_stage_decoder'],
+            conv_bias                   = arch['conv_bias'],
+            norm_op                     = arch['norm_op'],
+            norm_op_kwargs              = arch['norm_op_kwargs'],
+            nonlin                      = arch['nonlin'],
+            nonlin_kwargs               = arch['nonlin_kwargs'],
+            deep_supervision            = True
+        )
+        model = ResidualEncoderUNet(**resenc_kwargs)
 
 
     # this function is quite complicated, but allows for loading different checkpoints, stems, adapting positional embedding, skipping cls token...

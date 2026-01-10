@@ -238,10 +238,19 @@ if __name__ == '__main__':
 
     # Loading the checkpoint and extracting the network architecture parameters
     # checkpoint = torch.load("/home/c306h/rocket_share/mic_rocket/checkpoints/pretraining/MAE/Dataset804_Rocket_v3/BaseEvaMAETrainer_BS32_192ps_625ep_42_16_8_16_1056__nnsslPlans__noresample/fold_all/checkpoint_final.pth", map_location="cpu")
-    checkpoint =  torch.load('/home/c306h/rocket_share/mic_rocket/checkpoints/sharing/big_mae_primus.pth', map_location="cpu")
+    checkpoint =  torch.load('/home/c306h/rocket_share/mic_rocket/checkpoints/final_models/small_primus.pth', map_location="cpu")
     arch = checkpoint['nnssl_adaptation_plan']['architecture_plans']['arch_kwargs']
     pre_train_statedict = checkpoint["network_weights"]
     # print(checkpoint['nnssl_adaptation_plan'])
+
+    #default init values for big primus
+    scale_attn_inner = True
+    init_values = 0.1
+
+    if 'scale_attn_inner' in arch.keys():
+        scale_attn_inner = arch['scale_attn_inner']
+    if 'init_values' in arch.keys():
+        init_values = arch['init_values']
 
 
     ################ depend on your dataset #######################
@@ -265,8 +274,8 @@ if __name__ == '__main__':
         eva_numheads        = arch['encoder_eva_numheads'], # !!! number of heads in the encoder
         input_shape         = patch_size,
         drop_path_rate      = 0.2,
-        scale_attn_inner    = True,
-        init_values         = 0.1,
+        scale_attn_inner    = scale_attn_inner,
+        init_values         = init_values,
     )
     model = Primus(**primus_kwargs)
 
