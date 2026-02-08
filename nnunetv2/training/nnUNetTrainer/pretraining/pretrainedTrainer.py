@@ -210,6 +210,7 @@ class PretrainedTrainer(nnUNetTrainer):
         pt_weight_in_ch_mismatch = False
         need_to_adapt_lpe = False  # I.e. Learnable positional embedding
         key_to_lpe = getattr(network, "key_to_lpe", None)
+        lpe_in_encoder = False
         lpe_in_stem = False
 
         # # Check if the current module even uses a learnable positional embedding. If not ignore LPE logic.
