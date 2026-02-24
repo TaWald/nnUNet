@@ -448,6 +448,7 @@ class ExperimentPlanner(object):
 
             plan_3d_lowres = None
             lowres_spacing = deepcopy(plan_3d_fullres['spacing'])
+            lowres_spacing = np.array(lowres_spacing)  # Ensure it's a NumPy array
 
             spacing_increase_factor = 1.03  # used to be 1.01 but that is slow with new GPU memory estimation!
             while num_voxels_in_patch / median_num_voxels < self.lowres_creation_threshold:
@@ -455,7 +456,7 @@ class ExperimentPlanner(object):
                 # is/are similar (factor 2) to the other ax(i/e)s.
                 max_spacing = max(lowres_spacing)
                 if np.any((max_spacing / lowres_spacing) > 2):
-                    lowres_spacing = np.array(lowres_spacing)  # Ensure it's a NumPy array
+                    #lowres_spacing = np.array(lowres_spacing)  # Ensure it's a NumPy array
                     max_spacing = np.max(lowres_spacing)
                     mask = (max_spacing / lowres_spacing) > 2
                     lowres_spacing[mask] *= spacing_increase_factor
