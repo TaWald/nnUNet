@@ -17,7 +17,7 @@ Primus addresses this by moving the architecture back toward the Vision Transfor
 
 ## Architecture overview
 
-![Primus architecture overview](documentation/assets/primusv2.png?raw=true)
+![Primus architecture overview](https://github.com/TaWald/nnUNet/blob/primus_readme/documentation/assets/primusv2.png?raw=true)
 
 
 Primus tokenizes a 3D input volume into high-resolution visual tokens, processes them with a Transformer backbone using 3D axial RoPE and modern Transformer blocks, and decodes the resulting token sequence back into a dense segmentation map. PrimusV2 follows the same overall design, but replaces the single strided projection with an iterative residual tokenizer to produce stronger visual tokens.
